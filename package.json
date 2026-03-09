@@ -1,9 +1,10 @@
 {
-  "name": "my-expo-app",
+  "name": "Munkee",
   "version": "1.0.0",
   "scripts": {
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "dev": "concurrently \"convex dev\" \"expo run:ios\"",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "start": "expo start",
     "prebuild": "expo prebuild",
     "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" && prettier -c \"**/*.{js,jsx,ts,tsx,json}\"",
@@ -11,26 +12,29 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "convex": "^1.32.0",
     "expo": "^54.0.0",
     "expo-status-bar": "~3.0.8",
     "nativewind": "latest",
     "react": "19.1.0",
     "react-native": "0.81.5",
-    "react-native-reanimated": "~4.1.1",
+    "react-native-reanimated": "^4.2.2",
     "react-native-safe-area-context": "~5.6.0",
-    "react-native-worklets": "0.5.1"
+    "react-native-worklets": "^0.7.4"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@types/react": "~19.1.10",
+    "concurrently": "^9.2.1",
     "eslint": "^9.25.1",
     "eslint-config-expo": "~10.0.0",
     "eslint-config-prettier": "^10.1.2",
     "prettier": "^3.2.5",
-    "tailwindcss": "^3.4.0",
     "prettier-plugin-tailwindcss": "^0.5.11",
+    "tailwindcss": "^3.4.0",
     "typescript": "~5.9.2"
   },
   "main": "node_modules/expo/AppEntry.js",
-  "private": true
+  "private": true,
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
