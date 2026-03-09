@@ -2,6 +2,7 @@
   "expo": {
     "name": "Munkee",
     "slug": "munkee",
+    "scheme": "munkee",
     "version": "1.0.0",
     "web": {
       "favicon": "./assets/favicon.png"
@@ -9,7 +10,10 @@
     "experiments": {
       "tsconfigPaths": true
     },
-    "plugins": [],
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
