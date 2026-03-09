@@ -1,17 +1,17 @@
 import { Stack, router } from 'expo-router';
+import { useAuth } from '@clerk/clerk-expo';
 import { useEffect } from 'react';
 
 export default function AppLayout() {
-  // TODO: Replace with real auth check (e.g. Clerk useAuth)
-  const isAuthenticated = true;
+  const { isLoaded, isSignedIn } = useAuth();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (isLoaded && !isSignedIn) {
       router.replace('/welcome');
     }
-  }, [isAuthenticated]);
+  }, [isLoaded, isSignedIn]);
 
-  if (!isAuthenticated) return null;
+  if (!isLoaded || !isSignedIn) return null;
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }
