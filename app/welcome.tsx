@@ -8,12 +8,18 @@ export default function Welcome() {
       <View className="flex-1 items-center justify-center">
         <Text className="text-6xl font-bold">Welcome</Text>
       </View>
-      <View className="items-center pb-12">
+      <View className="items-center gap-3 pb-12">
         <TouchableOpacity
-          className="bg-black px-10 py-4 rounded-2xl"
+          className="bg-black w-64 py-4 rounded-2xl items-center"
           onPress={() => router.push('/onboarding')}
         >
-          <Text className="text-white text-base font-semibold">Next</Text>
+          <Text className="text-white text-base font-semibold">Get Started</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className="border border-gray-300 w-64 py-4 rounded-2xl items-center"
+          onPress={() => router.push('/login')}
+        >
+          <Text className="text-base font-semibold text-gray-800">Login</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

@@ -1,27 +1,41 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { useCallback, useEffect, useRef } from 'react';
+import { useAuth } from '@clerk/expo';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import RevenueCatUI from 'react-native-purchases-ui';
+import { useSubscription } from '../hooks/use-purchases';
 
 export default function Paywall() {
+  const { isSignedIn } = useAuth();
+  const { isActive } = useSubscription();
+  const hasNavigatedRef = useRef(false);
+
+  const navigateAfterPurchase = useCallback(() => {
+    if (hasNavigatedRef.current) return;
+    hasNavigatedRef.current = true;
+    router.replace(isSignedIn ? '/(app)/home' : '/login');
+  }, [isSignedIn]);
+
+  // Fallback: if customer info updates before purchase callbacks fire.
+  useEffect(() => {
+    if (isActive) {
+      navigateAfterPurchase();
+    }
+  }, [isActive, navigateAfterPurchase]);
+
+  function handleDismiss() {
+    if (hasNavigatedRef.current || isActive) return;
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/welcome');
+    }
+  }
+
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-1 items-center justify-center">
-        <Text className="text-6xl font-bold">Paywall</Text>
-      </View>
-      <View className="flex-row items-center justify-center gap-4 pb-12">
-        <TouchableOpacity
-          className="border border-gray-300 px-10 py-4 rounded-2xl"
-          onPress={() => router.back()}
-        >
-          <Text className="text-base font-semibold">Back</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className="bg-black px-10 py-4 rounded-2xl"
-          onPress={() => router.push('/login')}
-        >
-          <Text className="text-white text-base font-semibold">Next</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+    <RevenueCatUI.Paywall
+      onPurchaseCompleted={navigateAfterPurchase}
+      onRestoreCompleted={navigateAfterPurchase}
+      onDismiss={handleDismiss}
+    />
   );
 }

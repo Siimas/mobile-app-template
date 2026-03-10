@@ -1,8 +1,8 @@
 TODO:
 
 - setup clerk
-- setup convex
-- setup payment provider
+  - login/signup
+- handle subscription
 - setup sentry 
 - setup posthog
 - setup convex rls + functions

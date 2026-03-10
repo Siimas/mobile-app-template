@@ -33,4 +33,61 @@ http.route({
   }),
 });
 
+http.route({
+  path: "/webhooks/revenuecat",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authToken = request.headers.get("Authorization");
+    const expectedToken = process.env.REVENUECAT_WEBHOOK_AUTH_TOKEN;
+
+    if (!expectedToken || authToken !== expectedToken) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    let event: {
+      type: string;
+      app_user_id: string;
+      subscriber?: {
+        entitlements?: Record<string, { expires_date?: string | null }>;
+      };
+      expiration_at_ms?: number;
+    };
+
+    try {
+      event = await request.json();
+    } catch {
+      return new Response("Invalid JSON", { status: 400 });
+    }
+
+    const clerkId = event.app_user_id;
+    if (!clerkId) {
+      return new Response("Missing app_user_id", { status: 400 });
+    }
+
+    const activeEntitlements = Object.keys(event.subscriber?.entitlements ?? {});
+    const isActive = activeEntitlements.length > 0;
+
+    let status = "expired";
+    if (event.type === "INITIAL_PURCHASE" || event.type === "RENEWAL") {
+      status = "active";
+    } else if (event.type === "CANCELLATION") {
+      status = "cancelled";
+    } else if (event.type === "EXPIRATION") {
+      status = "expired";
+    } else if (isActive) {
+      status = "active";
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await ctx.runMutation((internal as any).subscriptions.upsertSubscription, {
+      clerkId,
+      status,
+      entitlements: activeEntitlements,
+      expiresAt: event.expiration_at_ms ?? undefined,
+    });
+
+    return new Response(null, { status: 200 });
+  }),
+});
+
 export default http;
