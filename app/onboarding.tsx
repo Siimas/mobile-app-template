@@ -6,33 +6,7 @@ import { useAuth } from '@clerk/expo';
 import { usePostHog } from 'posthog-react-native';
 import { useOnboarding } from '../hooks/use-onboarding';
 import { useSubscription } from '../hooks/use-purchases';
-
-const STEPS = [
-  {
-    question: 'What will you use this app for?',
-    options: ['Work', 'Learning', 'Personal', 'Other'],
-  },
-  {
-    question: 'How would you describe your experience level?',
-    options: ['beginner', 'intermediate', 'advanced'],
-    labels: ['Beginner', 'Intermediate', 'Advanced'],
-  },
-  {
-    question: 'What is your main goal?',
-    options: ['Build a habit', 'Improve performance', 'Reduce injury risk', 'General wellness'],
-  },
-];
-
-function hashSteps(steps: { question: string; options: string[] }[]): number {
-  const str = JSON.stringify(steps.map((s) => ({ q: s.question, o: s.options })));
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    hash = (((hash << 5) + hash) ^ str.charCodeAt(i)) >>> 0;
-  }
-  return hash || 1;
-}
-
-const CURRENT_ONBOARDING_VERSION = hashSteps(STEPS);
+import { CURRENT_ONBOARDING_VERSION, STEPS } from '@/onboarding/config';
 
 export default function Onboarding() {
   const { isSignedIn } = useAuth();
@@ -62,6 +36,7 @@ export default function Onboarding() {
     posthog.capture('onboarding_step_completed', {
       step_number: step + 1,
       total_steps: STEPS.length,
+      onboarding_version: CURRENT_ONBOARDING_VERSION,
       question: current.question,
       answer: selected,
     });
@@ -80,6 +55,7 @@ export default function Onboarding() {
 
     posthog.capture('onboarding_completed', {
       total_steps: STEPS.length,
+      onboarding_version: CURRENT_ONBOARDING_VERSION,
     });
 
     if (isSignedIn && isActive) {

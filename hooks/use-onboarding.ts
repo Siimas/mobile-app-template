@@ -4,6 +4,7 @@ import Purchases from 'react-native-purchases';
 import { useMutation, useQuery } from 'convex/react';
 import { useAuth } from '@clerk/expo';
 import { api } from '../convex/_generated/api';
+import { CURRENT_ONBOARDING_VERSION } from '@/onboarding/config';
 
 const STORAGE_KEY = 'app.onboarding';
 const OWNER_KEY_CACHE = 'app.onboarding_owner_key';
@@ -38,7 +39,22 @@ export function useOnboarding(): OnboardingState {
 
   useEffect(() => {
     SecureStore.getItemAsync(STORAGE_KEY)
-      .then((raw) => setLocalData(raw ? JSON.parse(raw) : null))
+      .then(async (raw) => {
+        const parsed = raw ? (JSON.parse(raw) as OnboardingData) : null;
+        if (!parsed) {
+          setLocalData(null);
+          return;
+        }
+
+        if (parsed.onboardingVersion == null) {
+          const hydrated = { ...parsed, onboardingVersion: CURRENT_ONBOARDING_VERSION };
+          await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(hydrated));
+          setLocalData(hydrated);
+          return;
+        }
+
+        setLocalData(parsed);
+      })
       .catch(() => setLocalData(null))
       .finally(() => setIsLoading(false));
   }, []);
@@ -77,7 +93,7 @@ export function useOnboarding(): OnboardingState {
       ];
       const entry: OnboardingData = {
         answers: updatedAnswers,
-        onboardingVersion: base.onboardingVersion,
+        onboardingVersion: base.onboardingVersion ?? CURRENT_ONBOARDING_VERSION,
         completedAt: input.isLastQuestion ? base.completedAt ?? Date.now() : base.completedAt,
       };
 
@@ -85,7 +101,7 @@ export function useOnboarding(): OnboardingState {
 
       try {
         const ownerKey = await getOwnerKey();
-        const version = entry.onboardingVersion ?? 1;
+        const version = CURRENT_ONBOARDING_VERSION;
         await saveAnswer({
           ownerKey,
           onboardingVersion: version,
