@@ -1,6 +1,7 @@
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@clerk/expo';
 import { useEffect } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { useSubscription } from '../../hooks/use-purchases';
 import { useOnboarding } from '../../hooks/use-onboarding';
 
@@ -28,7 +29,11 @@ export default function AppLayout() {
   }, [isLoaded, isSignedIn, isSubLoading, isOnboardingLoading, isActive, isOnboardingCompleted]);
 
   if (!isLoaded || !isSignedIn || isSubLoading || isOnboardingLoading || !isActive || !isOnboardingCompleted) {
-    return null;
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
   }
 
   return <Stack screenOptions={{ headerShown: false }} />;

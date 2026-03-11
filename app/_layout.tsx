@@ -1,3 +1,4 @@
+import '../polyfills'; // must be first — polyfills navigator.onLine before Clerk loads
 import '../global.css';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
@@ -13,8 +14,13 @@ function useAuthFromClerk() {
   return {
     isLoading: !isLoaded,
     isAuthenticated: isSignedIn ?? false,
-    fetchAccessToken: async ({ forceRefreshToken }: { forceRefreshToken: boolean }) =>
-      getToken({ template: 'convex', skipCache: forceRefreshToken }),
+    fetchAccessToken: async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
+      try {
+        return await getToken({ template: 'convex', skipCache: forceRefreshToken });
+      } catch {
+        return null;
+      }
+    },
   };
 }
 

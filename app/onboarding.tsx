@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,54 +8,66 @@ import { useSubscription } from '../hooks/use-purchases';
 
 const STEPS = [
   {
-    title: 'What will you use this app for?',
-    field: 'useCase' as const,
+    question: 'What will you use this app for?',
     options: ['Work', 'Learning', 'Personal', 'Other'],
   },
   {
-    title: 'How would you describe your experience level?',
-    field: 'experienceLevel' as const,
+    question: 'How would you describe your experience level?',
     options: ['beginner', 'intermediate', 'advanced'],
     labels: ['Beginner', 'Intermediate', 'Advanced'],
   },
   {
-    title: 'What is your main goal?',
-    field: 'goal' as const,
+    question: 'What is your main goal?',
     options: ['Build a habit', 'Improve performance', 'Reduce injury risk', 'General wellness'],
   },
 ];
 
+function hashSteps(steps: { question: string; options: string[] }[]): number {
+  const str = JSON.stringify(steps.map((s) => ({ q: s.question, o: s.options })));
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = (((hash << 5) + hash) ^ str.charCodeAt(i)) >>> 0;
+  }
+  return hash || 1;
+}
+
+const CURRENT_ONBOARDING_VERSION = hashSteps(STEPS);
+
 export default function Onboarding() {
   const { isSignedIn } = useAuth();
   const { isActive } = useSubscription();
-  const { save } = useOnboarding();
+  const { saveStep, data } = useOnboarding();
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<{ useCase: string; experienceLevel: string; goal: string }>({
-    useCase: '',
-    experienceLevel: '',
-    goal: '',
-  });
+  const [selected, setSelected] = useState('');
+
+  useEffect(() => {
+    if (!data?.answers) return;
+    const existingAnswer = data.answers.find((a) => a.question === STEPS[step].question);
+    if (existingAnswer) setSelected(existingAnswer.answer);
+  }, [step, data]);
 
   const current = STEPS[step];
-  const selected = answers[current.field];
 
   function selectOption(value: string) {
-    setAnswers((prev) => ({ ...prev, [current.field]: value }));
+    setSelected(value);
   }
 
   async function handleNext() {
     if (!selected) return;
 
+    const isLastQuestion = step === STEPS.length - 1;
+
+    await saveStep({
+      question: current.question,
+      answer: selected,
+      isLastQuestion,
+    });
+
     if (step < STEPS.length - 1) {
+      setSelected('');
       setStep((s) => s + 1);
       return;
     }
-
-    await save({
-      useCase: answers.useCase,
-      experienceLevel: answers.experienceLevel as 'beginner' | 'intermediate' | 'advanced',
-      goal: answers.goal,
-    });
 
     if (isSignedIn && isActive) {
       router.replace('/(app)/home');
@@ -66,8 +78,13 @@ export default function Onboarding() {
 
   function handleBack() {
     if (step === 0) {
-      router.back();
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/welcome');
+      }
     } else {
+      setSelected('');
       setStep((s) => s - 1);
     }
   }
@@ -83,7 +100,7 @@ export default function Onboarding() {
       </View>
 
       <View className="flex-1 px-6 pt-8">
-        <Text className="text-2xl font-bold mb-8">{current.title}</Text>
+        <Text className="text-2xl font-bold mb-8">{current.question}</Text>
         <View className="gap-3">
           {current.options.map((option, i) => (
             <TouchableOpacity

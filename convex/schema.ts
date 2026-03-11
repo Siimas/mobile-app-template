@@ -8,18 +8,20 @@ export default defineSchema({
     name: v.optional(v.string()),
   }).index("by_clerk_id", ["clerkId"]),
 
-  onboardingProgress: defineTable({
+  onboardingResponses: defineTable({
     ownerKey: v.string(),
     clerkId: v.optional(v.string()),
-    useCase: v.optional(v.string()),
-    experienceLevel: v.optional(
-      v.union(v.literal("beginner"), v.literal("intermediate"), v.literal("advanced")),
-    ),
-    goal: v.optional(v.string()),
-    lastAnsweredStep: v.optional(v.number()),
+    onboardingVersion: v.number(),
+    answers: v.array(v.object({
+      question: v.string(),
+      answer: v.string(),
+      answeredAt: v.number(),
+    })),
     completedAt: v.optional(v.number()),
+    startedAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_owner_key", ["ownerKey"])
+    .index("by_owner_key_version", ["ownerKey", "onboardingVersion"])
+    .index("by_clerk_id_version", ["clerkId", "onboardingVersion"])
     .index("by_clerk_id", ["clerkId"]),
 });

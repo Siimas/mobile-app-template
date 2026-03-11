@@ -1,27 +1,40 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useSSO } from '@clerk/expo';
-import { useSignInWithGoogle } from '@clerk/expo/google';
+import { isClerkAPIResponseError, useAuth, useSSO } from '@clerk/expo';
 import { useSignInWithApple } from '@clerk/expo/apple';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+import { useOnboarding } from '../hooks/use-onboarding';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function Login() {
   const { startSSOFlow } = useSSO();
-  const { startGoogleAuthenticationFlow } = useSignInWithGoogle();
   const { startAppleAuthenticationFlow } = useSignInWithApple();
+  const { isLoaded, isSignedIn } = useAuth();
+  const { isCompleted: isOnboardingCompleted, isLoading: isOnboardingLoading } = useOnboarding();
 
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isAppleLoading, setIsAppleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isAnyLoading = isGoogleLoading || isAppleLoading;
+  const postLoginPath = isOnboardingCompleted ? '/(app)/home' : '/onboarding';
+
+  const redirectUrl = useMemo(() => AuthSession.makeRedirectUri({ scheme: 'myapp', path: 'oauth-native-callback' }), []);
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn && !isOnboardingLoading) {
+      router.replace(postLoginPath);
+    }
+  }, [isLoaded, isSignedIn, isOnboardingLoading, postLoginPath]);
 
   async function activateSession(createdSessionId: string | null, setActive?: (params: { session: string }) => Promise<void>) {
     if (!createdSessionId || !setActive) {
       return;
     }
     await setActive({ session: createdSessionId });
-    router.replace('/(app)/home');
   }
 
   function isCancelError(err: unknown) {
@@ -37,14 +50,45 @@ export default function Login() {
     );
   }
 
+  function logAuthError(context: string, err: unknown) {
+    const code = typeof err === 'object' && err !== null && 'code' in err ? String((err as { code: unknown }).code) : 'unknown';
+    const message =
+      typeof err === 'object' && err !== null && 'message' in err ? String((err as { message: unknown }).message) : String(err);
+    console.error(`[auth] ${context} failed (code=${code}): ${message}`);
+  }
+
+  function isAlreadySignedInError(err: unknown) {
+    if (isClerkAPIResponseError(err)) {
+      return err.errors.some((clerkError) => {
+        const code = clerkError.code?.toLowerCase() ?? '';
+        const longMessage = clerkError.longMessage?.toLowerCase() ?? '';
+        return code === 'already_signed_in' || longMessage.includes('already signed in');
+      });
+    }
+
+    const message =
+      typeof err === 'object' && err !== null && 'message' in err ? String((err as { message: unknown }).message).toLowerCase() : '';
+    return message.includes('already signed in');
+  }
+
   async function handleGoogleSignIn() {
+    if (isSignedIn) {
+      router.replace(postLoginPath);
+      return;
+    }
+
     try {
       setError(null);
       setIsGoogleLoading(true);
-      const { createdSessionId, setActive } = await startGoogleAuthenticationFlow();
+      const { createdSessionId, setActive } = await startSSOFlow({ strategy: 'oauth_google', redirectUrl });
       await activateSession(createdSessionId, setActive);
     } catch (err) {
       if (isCancelError(err)) return;
+      if (isAlreadySignedInError(err)) {
+        router.replace(postLoginPath);
+        return;
+      }
+      logAuthError('Google sign-in', err);
       setError('Something went wrong. Please try again.');
     } finally {
       setIsGoogleLoading(false);
@@ -52,6 +96,11 @@ export default function Login() {
   }
 
   async function handleAppleSignIn() {
+    if (isSignedIn) {
+      router.replace(postLoginPath);
+      return;
+    }
+
     try {
       setError(null);
       setIsAppleLoading(true);
@@ -63,18 +112,24 @@ export default function Login() {
           return;
         } catch (err) {
           if (isCancelError(err)) return;
+          logAuthError('Native Apple sign-in', err);
           // Native Apple auth can fail on simulator/dev setup.
           // Fall back to OAuth flow so Apple sign-in remains usable.
-          const { createdSessionId, setActive } = await startSSOFlow({ strategy: 'oauth_apple' });
+          const { createdSessionId, setActive } = await startSSOFlow({ strategy: 'oauth_apple', redirectUrl });
           await activateSession(createdSessionId, setActive);
           return;
         }
       }
 
-      const { createdSessionId, setActive } = await startSSOFlow({ strategy: 'oauth_apple' });
+      const { createdSessionId, setActive } = await startSSOFlow({ strategy: 'oauth_apple', redirectUrl });
       await activateSession(createdSessionId, setActive);
     } catch (err) {
       if (isCancelError(err)) return;
+      if (isAlreadySignedInError(err)) {
+        router.replace(postLoginPath);
+        return;
+      }
+      logAuthError('Apple sign-in', err);
       setError('Something went wrong. Please try again.');
     } finally {
       setIsAppleLoading(false);

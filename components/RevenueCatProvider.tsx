@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 import { useAuth } from '@clerk/expo';
+import { useMutation } from 'convex/react';
+import { api } from '../convex/_generated/api';
 
 const API_KEY =
   Platform.OS === 'ios'
@@ -10,6 +12,7 @@ const API_KEY =
 
 export function RevenueCatProvider({ children }: { children: React.ReactNode }) {
   const { userId } = useAuth();
+  const linkAnonymousOnboarding = useMutation(api.onboardingResponses.linkAnonymousOnboarding);
 
   useEffect(() => {
     if (__DEV__) {
@@ -19,12 +22,33 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   useEffect(() => {
-    if (userId) {
-      Purchases.logIn(userId).catch((err) =>
-        console.error('[RevenueCat] logIn failed:', err)
-      );
+    if (typeof userId !== 'string' || userId.length === 0) return;
+    const clerkUserId: string = userId;
+
+    let isCancelled = false;
+
+    async function syncIdentity() {
+      try {
+        const currentAppUserId = await Purchases.getAppUserID();
+        const anonymousOwnerKey =
+          currentAppUserId && currentAppUserId !== clerkUserId ? currentAppUserId : null;
+
+        await Purchases.logIn(clerkUserId);
+
+        if (!isCancelled && anonymousOwnerKey) {
+          await linkAnonymousOnboarding({ anonymousOwnerKey });
+        }
+      } catch (err) {
+        console.error('[RevenueCat] identity sync failed:', err);
+      }
     }
-  }, [userId]);
+
+    syncIdentity();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [userId, linkAnonymousOnboarding]);
 
   return <>{children}</>;
 }
