@@ -1,0 +1,55 @@
+export default {
+  expo: {
+    name: 'MyApp',
+    slug: 'myapp',
+    scheme: 'myapp',
+    version: '1.0.0',
+    web: {
+      favicon: './assets/favicon.png',
+    },
+    experiments: {
+      tsconfigPaths: true,
+    },
+    plugins: [
+      'expo-router',
+      'expo-font',
+      'expo-secure-store',
+      'expo-apple-authentication',
+      '@clerk/expo',
+      'expo-web-browser',
+      'expo-localization',
+      [
+        '@sentry/react-native/expo',
+        {
+          url: 'https://sentry.io/',
+          project: 'myapp',
+          organization: 'simas-ui',
+        },
+      ],
+    ],
+    orientation: 'portrait',
+    icon: './assets/icon.png',
+    userInterfaceStyle: 'light',
+    splash: {
+      image: './assets/splash.png',
+      resizeMode: 'contain',
+      backgroundColor: '#ffffff',
+    },
+    assetBundlePatterns: ['**/*'],
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: 'com.example.myapp',
+    },
+    android: {
+      adaptiveIcon: {
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#ffffff',
+      },
+      package: 'com.example.myapp',
+    },
+    extra: {
+      posthogApiKey: process.env.EXPO_PUBLIC_POSTHOG_API_KEY,
+      posthogHost: process.env.EXPO_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+    },
+  },
+};

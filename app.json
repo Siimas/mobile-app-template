@@ -24,7 +24,8 @@
           "project": "myapp",
           "organization": "simas-ui"
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -34,7 +35,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.example.myapp"

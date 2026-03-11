@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth, useClerk } from '@clerk/expo';
+import { usePostHog } from 'posthog-react-native';
 import { useSubscription } from '../hooks/use-purchases';
 import { useOnboarding } from '../hooks/use-onboarding';
 
@@ -10,9 +11,11 @@ export default function Welcome() {
   const { signOut } = useClerk();
   const { isActive } = useSubscription();
   const { isCompleted: isOnboardingCompleted, isLoading: isOnboardingLoading } = useOnboarding();
+  const posthog = usePostHog();
 
   function handlePrimaryAction() {
     if (!isSignedIn) {
+      posthog.capture('get_started_clicked');
       router.push('/onboarding');
       return;
     }
@@ -23,6 +26,12 @@ export default function Welcome() {
     }
 
     router.push(isActive ? '/(app)/home' : '/paywall');
+  }
+
+  async function handleSignOut() {
+    posthog.capture('user_signed_out');
+    posthog.reset();
+    await signOut();
   }
 
   return (
@@ -47,7 +56,7 @@ export default function Welcome() {
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity onPress={() => signOut()}>
+          <TouchableOpacity onPress={handleSignOut}>
             <Text className="text-base text-gray-500">Log out</Text>
           </TouchableOpacity>
         )}

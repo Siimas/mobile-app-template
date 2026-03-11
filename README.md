@@ -1,8 +1,6 @@
 TODO:
 
-- setup sentry
-- setup posthog
-- setup components
+- setup convex components
   - functions
   - rls
   - rate limiter
