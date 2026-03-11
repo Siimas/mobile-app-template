@@ -1,26 +1,13 @@
 import { Stack, router } from 'expo-router';
 import { useAuth } from '@clerk/expo';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useSubscription } from '../../hooks/use-purchases';
 import { useOnboarding } from '../../hooks/use-onboarding';
 
 export default function AppLayout() {
   const { isLoaded, isSignedIn } = useAuth();
-  const { isActive, isLoading: isSubLoading, refresh } = useSubscription();
+  const { isActive, isLoading: isSubLoading } = useSubscription();
   const { isCompleted: isOnboardingCompleted, isLoading: isOnboardingLoading } = useOnboarding();
-  const didRefreshForSignIn = useRef(false);
-
-  // After sign-in: call refresh() once to raise isLoading=true shield,
-  // giving Purchases.logIn() time to complete before subscription guard fires.
-  useEffect(() => {
-    if (isLoaded && isSignedIn && !didRefreshForSignIn.current) {
-      didRefreshForSignIn.current = true;
-      refresh();
-    }
-    if (isLoaded && !isSignedIn) {
-      didRefreshForSignIn.current = false;
-    }
-  }, [isLoaded, isSignedIn, refresh]);
 
   // Unified guard: only runs when ALL state is settled.
   useEffect(() => {

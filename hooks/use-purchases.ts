@@ -1,45 +1,20 @@
-import { useState, useEffect, useCallback } from 'react';
-import Purchases, { CustomerInfo, CustomerInfoUpdateListener } from 'react-native-purchases';
+import { useQuery } from 'convex/react';
+import { useAuth } from '@clerk/expo';
+import { api } from '../convex/_generated/api';
 
-interface SubscriptionState {
-  isActive: boolean;
-  isLoading: boolean;
-  customerInfo: CustomerInfo | null;
-  refresh: () => Promise<void>;
-}
+const ENTITLEMENT_ID = process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID?.trim();
 
-export function useSubscription(): SubscriptionState {
-  const [isLoading, setIsLoading] = useState(true);
-  const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
+export function useSubscription() {
+  const { isSignedIn } = useAuth();
+  const entitlements = useQuery(
+    api.revenuecat.getMyActiveEntitlements,
+    isSignedIn ? {} : 'skip'
+  );
 
-  const fetchCustomerInfo = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const info = await Purchases.getCustomerInfo();
-      setCustomerInfo(info);
-    } catch (error) {
-      console.error('[RevenueCat] Failed to get customer info:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const isLoading = isSignedIn ? entitlements === undefined : false;
+  const isActive = ENTITLEMENT_ID
+    ? entitlements?.some((e) => e.identifier === ENTITLEMENT_ID) ?? false
+    : (entitlements?.length ?? 0) > 0;
 
-  useEffect(() => {
-    fetchCustomerInfo();
-
-    const listener: CustomerInfoUpdateListener = (info) => {
-      setCustomerInfo(info);
-      setIsLoading(false);
-    };
-
-    Purchases.addCustomerInfoUpdateListener(listener);
-
-    return () => {
-      Purchases.removeCustomerInfoUpdateListener(listener);
-    };
-  }, [fetchCustomerInfo]);
-
-  const isActive = customerInfo?.entitlements.active['premium'] !== undefined;
-
-  return { isActive, isLoading, customerInfo, refresh: fetchCustomerInfo };
+  return { isActive, isLoading };
 }

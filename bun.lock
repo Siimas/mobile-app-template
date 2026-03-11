@@ -8,6 +8,7 @@
         "@clerk/expo": "^3.1.0",
         "@react-native-async-storage/async-storage": "^3.0.1",
         "convex": "^1.32.0",
+        "convex-revenuecat": "^0.1.10",
         "expo": "^54.0.0",
         "expo-apple-authentication": "~8.0.8",
         "expo-auth-session": "~7.0.10",
@@ -901,6 +902,8 @@
     "convert-source-map": ["convert-source-map@2.0.0", "", {}, "sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg=="],
 
     "convex": ["convex@1.32.0", "", { "dependencies": { "esbuild": "0.27.0", "prettier": "^3.0.0", "ws": "8.18.0" }, "peerDependencies": { "@auth0/auth0-react": "^2.0.1", "@clerk/clerk-react": "^4.12.8 || ^5.0.0", "react": "^18.0.0 || ^19.0.0-0 || ^19.0.0" }, "optionalPeers": ["@auth0/auth0-react", "@clerk/clerk-react", "react"], "bin": { "convex": "bin/main.js" } }, "sha512-5FlajdLpW75pdLS+/CgGH5H6yeRuA+ru50AKJEYbJpmyILUS+7fdTvsdTaQ7ZFXMv0gE8mX4S+S3AtJ94k0mfw=="],
+
+    "convex-revenuecat": ["convex-revenuecat@0.1.10", "", { "peerDependencies": { "convex": "^1.31.6" } }, "sha512-bmeo8KITMutLEB2NsC3Xp8GnFvB3LO2CXYOHF3ugfeg+lKbYuKxaMVf0Y+rW8UwQu997DP7PZPR5yiwI284ZHw=="],
 
     "core-js": ["core-js@3.47.0", "", {}, "sha512-c3Q2VVkGAUyupsjRnaNX6u8Dq2vAdzm9iuPj5FW0fRxzlxgq9Q39MDq10IvmQSpLgHQNyQzQmOo6bgGHmH3NNg=="],
 

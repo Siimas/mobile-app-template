@@ -8,12 +8,18 @@ export default defineSchema({
     name: v.optional(v.string()),
   }).index("by_clerk_id", ["clerkId"]),
 
-  subscriptions: defineTable({
-    clerkId: v.string(),
-    status: v.string(),
-    entitlements: v.array(v.string()),
-    expiresAt: v.optional(v.number()),
-    revenueCatCustomerId: v.optional(v.string()),
+  onboardingProgress: defineTable({
+    ownerKey: v.string(),
+    clerkId: v.optional(v.string()),
+    useCase: v.optional(v.string()),
+    experienceLevel: v.optional(
+      v.union(v.literal("beginner"), v.literal("intermediate"), v.literal("advanced")),
+    ),
+    goal: v.optional(v.string()),
+    lastAnsweredStep: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
     updatedAt: v.number(),
-  }).index("by_clerk_id", ["clerkId"]),
+  })
+    .index("by_owner_key", ["ownerKey"])
+    .index("by_clerk_id", ["clerkId"]),
 });
