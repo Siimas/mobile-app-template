@@ -32,11 +32,10 @@ export default function Welcome() {
       </View>
       <View className="items-center gap-3 pb-12">
         <TouchableOpacity
-          className="bg-black w-64 py-4 rounded-2xl items-center"
+          className="w-64 items-center rounded-2xl bg-black py-4"
           onPress={handlePrimaryAction}
-          disabled={isOnboardingLoading}
-        >
-          <Text className="text-white text-base font-semibold">
+          disabled={isOnboardingLoading}>
+          <Text className="text-base font-semibold text-white">
             {isSignedIn ? 'Go to App' : 'Get Started'}
           </Text>
         </TouchableOpacity>

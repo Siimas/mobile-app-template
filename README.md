@@ -1,9 +1,11 @@
 TODO:
 
-- setup clerk
-  - login/signup
-- handle subscription
-- setup sentry 
+- setup sentry
 - setup posthog
-- setup convex rls + functions
-- setup convex rate limiter
+- setup components
+  - functions
+  - rls
+  - rate limiter
+  - expo push notifications
+- readme setup guide
+- subscription proactive handling (notifying users, grace periods, etc.)

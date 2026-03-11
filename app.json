@@ -16,7 +16,15 @@
       "expo-secure-store",
       "expo-apple-authentication",
       "@clerk/expo",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "myapp",
+          "organization": "simas-ui"
+        }
+      ]
     ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -26,9 +34,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.example.myapp"
