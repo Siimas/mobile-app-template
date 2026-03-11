@@ -2,7 +2,8 @@
   "name": "myapp",
   "version": "1.0.0",
   "scripts": {
-    "dev": "concurrently \"convex dev\" \"expo run:ios\"",
+    "dev:simulator": "concurrently \"convex dev\" \"expo run:ios\"",
+    "dev:expo-go": "concurrently \"convex dev\" \"expo start\"",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "start": "expo start",

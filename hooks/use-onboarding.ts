@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import Purchases from 'react-native-purchases';
 import { useMutation, useQuery } from 'convex/react';
 import { useAuth } from '@clerk/expo';
 import { api } from '../convex/_generated/api';
 
-const STORAGE_KEY = '@app/onboarding';
-const OWNER_KEY_CACHE = '@app/onboarding_owner_key';
+const STORAGE_KEY = 'app.onboarding';
+const OWNER_KEY_CACHE = 'app.onboarding_owner_key';
 
 interface SaveStepInput {
   question: string;
@@ -34,16 +34,17 @@ export function useOnboarding(): OnboardingState {
   const saveAnswer = useMutation(api.onboardingResponses.saveAnswer);
   const completeOnboarding = useMutation(api.onboardingResponses.completeOnboarding);
   const remoteData = useQuery(api.onboardingResponses.getMyOnboarding, isSignedIn ? {} : 'skip');
+  const meData = useQuery(api.users.getMe, isSignedIn ? {} : 'skip');
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
+    SecureStore.getItemAsync(STORAGE_KEY)
       .then((raw) => setLocalData(raw ? JSON.parse(raw) : null))
       .catch(() => setLocalData(null))
       .finally(() => setIsLoading(false));
   }, []);
 
   const saveLocalData = useCallback(async (entry: OnboardingData) => {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(entry));
+    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(entry));
     setLocalData(entry);
   }, []);
 
@@ -51,14 +52,14 @@ export function useOnboarding(): OnboardingState {
     try {
       const ownerKey = await Purchases.getAppUserID();
       if (ownerKey) {
-        await AsyncStorage.setItem(OWNER_KEY_CACHE, ownerKey);
+        await SecureStore.setItemAsync(OWNER_KEY_CACHE, ownerKey);
         return ownerKey;
       }
     } catch (error) {
       console.warn('[onboarding] Failed to get RevenueCat app user ID:', error);
     }
 
-    const cachedOwnerKey = await AsyncStorage.getItem(OWNER_KEY_CACHE);
+    const cachedOwnerKey = await SecureStore.getItemAsync(OWNER_KEY_CACHE);
     if (cachedOwnerKey) {
       return cachedOwnerKey;
     }
@@ -102,10 +103,10 @@ export function useOnboarding(): OnboardingState {
   );
 
   const data = remoteData ?? localData;
-  const remoteLoading = isSignedIn ? remoteData === undefined : false;
+  const remoteLoading = isSignedIn ? remoteData === undefined || meData === undefined : false;
 
   return {
-    isCompleted: data?.completedAt != null,
+    isCompleted: data?.completedAt != null || meData?.hasCompletedOnboarding === true,
     isLoading: isLoading || remoteLoading,
     data,
     saveStep,

@@ -67,6 +67,15 @@ export const completeOnboarding = mutation({
     if (!existing || existing.completedAt != null) return existing?._id ?? null;
     const now = Date.now();
     await ctx.db.patch(existing._id, { completedAt: now, updatedAt: now });
+    if (clerkId) {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+        .unique();
+      if (user) {
+        await ctx.db.patch(user._id, { hasCompletedOnboarding: true });
+      }
+    }
     return existing._id;
   },
 });
@@ -116,6 +125,17 @@ export const linkAnonymousOnboarding = mutation({
           updatedAt: Date.now(),
         });
         await ctx.db.delete(anon._id);
+      }
+    }
+
+    const anyCompleted = anonRecords.some((r) => r.completedAt != null);
+    if (anyCompleted) {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+        .unique();
+      if (user) {
+        await ctx.db.patch(user._id, { hasCompletedOnboarding: true });
       }
     }
     return null;

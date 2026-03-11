@@ -1,5 +1,17 @@
-import { internalMutation } from "./_generated/server";
+import { internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
+
+export const getMe = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+    return await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+  },
+});
 
 export const handleClerkWebhook = internalMutation({
   args: { event: v.any() },
