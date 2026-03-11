@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 import { useAuth } from '@clerk/expo';
@@ -10,8 +10,17 @@ const API_KEY =
     ? process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS!
     : process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID!;
 
+type RevenueCatContextType = { isSynced: boolean; isActiveFromSDK: boolean };
+const RevenueCatContext = createContext<RevenueCatContextType>({ isSynced: true, isActiveFromSDK: false });
+
+export function useRevenueCat() {
+  return useContext(RevenueCatContext);
+}
+
 export function RevenueCatProvider({ children }: { children: React.ReactNode }) {
   const { userId } = useAuth();
+  const [isSynced, setIsSynced] = useState(!userId);
+  const [isActiveFromSDK, setIsActiveFromSDK] = useState(false);
   const linkAnonymousOnboarding = useMutation(api.onboardingResponses.linkAnonymousOnboarding);
 
   useEffect(() => {
@@ -22,24 +31,37 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   useEffect(() => {
-    if (typeof userId !== 'string' || userId.length === 0) return;
-    const clerkUserId: string = userId;
+    if (typeof userId !== 'string' || userId.length === 0) {
+      setIsSynced(true);
+      setIsActiveFromSDK(false);
+      return;
+    }
 
+    setIsSynced(false);
     let isCancelled = false;
 
     async function syncIdentity() {
       try {
         const currentAppUserId = await Purchases.getAppUserID();
         const anonymousOwnerKey =
-          currentAppUserId && currentAppUserId !== clerkUserId ? currentAppUserId : null;
+          currentAppUserId && currentAppUserId !== userId ? currentAppUserId : null;
 
-        await Purchases.logIn(clerkUserId);
+        const { customerInfo } = await Purchases.logIn(userId!);
+
+        const active = Object.values(customerInfo.entitlements.active).length > 0;
+        if (!isCancelled) {
+          setIsActiveFromSDK(active);
+          setIsSynced(true);
+        }
 
         if (!isCancelled && anonymousOwnerKey) {
           await linkAnonymousOnboarding({ anonymousOwnerKey });
         }
       } catch (err) {
         console.error('[RevenueCat] identity sync failed:', err);
+        if (!isCancelled) {
+          setIsSynced(true);
+        }
       }
     }
 
@@ -50,5 +72,9 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
     };
   }, [userId, linkAnonymousOnboarding]);
 
-  return <>{children}</>;
+  return (
+    <RevenueCatContext.Provider value={{ isSynced, isActiveFromSDK }}>
+      {children}
+    </RevenueCatContext.Provider>
+  );
 }

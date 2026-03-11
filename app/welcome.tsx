@@ -1,12 +1,13 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '@clerk/expo';
+import { useAuth, useClerk } from '@clerk/expo';
 import { useSubscription } from '../hooks/use-purchases';
 import { useOnboarding } from '../hooks/use-onboarding';
 
 export default function Welcome() {
   const { isSignedIn } = useAuth();
+  const { signOut } = useClerk();
   const { isActive } = useSubscription();
   const { isCompleted: isOnboardingCompleted, isLoading: isOnboardingLoading } = useOnboarding();
 
@@ -46,7 +47,11 @@ export default function Welcome() {
               <Text className="text-base font-semibold text-gray-900">Sign in</Text>
             </TouchableOpacity>
           </View>
-        ) : null}
+        ) : (
+          <TouchableOpacity onPress={() => signOut()}>
+            <Text className="text-base text-gray-500">Log out</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
