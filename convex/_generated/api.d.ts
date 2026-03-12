@@ -9,11 +9,25 @@
  */
 
 import type * as clerk from "../clerk.js";
+import type * as clerk_actions from "../clerk/actions.js";
+import type * as clerk_http from "../clerk/http.js";
+import type * as clerk_types from "../clerk/types.js";
 import type * as http from "../http.js";
 import type * as onboardingResponses from "../onboardingResponses.js";
+import type * as onboardingResponses_lib from "../onboardingResponses/lib.js";
+import type * as onboardingResponses_mutations from "../onboardingResponses/mutations.js";
+import type * as onboardingResponses_queries from "../onboardingResponses/queries.js";
+import type * as onboardingResponses_types from "../onboardingResponses/types.js";
 import type * as pushNotifications from "../pushNotifications.js";
+import type * as pushNotifications_mutations from "../pushNotifications/mutations.js";
 import type * as revenuecat from "../revenuecat.js";
+import type * as revenuecat_http from "../revenuecat/http.js";
+import type * as revenuecat_queries from "../revenuecat/queries.js";
 import type * as users from "../users.js";
+import type * as users_lib from "../users/lib.js";
+import type * as users_mutations from "../users/mutations.js";
+import type * as users_queries from "../users/queries.js";
+import type * as users_types from "../users/types.js";
 
 import type {
   ApiFromModules,
@@ -23,11 +37,25 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   clerk: typeof clerk;
+  "clerk/actions": typeof clerk_actions;
+  "clerk/http": typeof clerk_http;
+  "clerk/types": typeof clerk_types;
   http: typeof http;
   onboardingResponses: typeof onboardingResponses;
+  "onboardingResponses/lib": typeof onboardingResponses_lib;
+  "onboardingResponses/mutations": typeof onboardingResponses_mutations;
+  "onboardingResponses/queries": typeof onboardingResponses_queries;
+  "onboardingResponses/types": typeof onboardingResponses_types;
   pushNotifications: typeof pushNotifications;
+  "pushNotifications/mutations": typeof pushNotifications_mutations;
   revenuecat: typeof revenuecat;
+  "revenuecat/http": typeof revenuecat_http;
+  "revenuecat/queries": typeof revenuecat_queries;
   users: typeof users;
+  "users/lib": typeof users_lib;
+  "users/mutations": typeof users_mutations;
+  "users/queries": typeof users_queries;
+  "users/types": typeof users_types;
 }>;
 
 /**
