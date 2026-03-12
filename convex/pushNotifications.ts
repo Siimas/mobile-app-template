@@ -1,5 +1,5 @@
 import { mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from 'convex/values';
 import { components } from "./_generated/api";
 import { PushNotifications } from "@convex-dev/expo-push-notifications";
 
@@ -29,16 +29,18 @@ export const removePushToken = mutation({
 });
 
 // Send a notification to a specific user
-export const sendNotificationToUser = mutation({
+export const sendNotification = mutation({
   args: {
-    userId: v.string(),
     title: v.string(),
     body: v.string(),
     data: v.optional(v.any()),
   },
-  handler: async (ctx, { userId, title, body, data }) => {
+  handler: async (ctx, { title, body, data }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new ConvexError('Not authenticated');
+
     await notifications.sendPushNotification(ctx, {
-      userId,
+      userId: identity.subject,
       notification: { title, body, data },
       allowUnregisteredTokens: true,
     });

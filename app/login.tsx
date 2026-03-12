@@ -2,8 +2,13 @@ import { router } from 'expo-router';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SignInButtons } from '../components/auth/SignInButtons';
+import { useAuth } from '@clerk/expo';
 
 export default function Login() {
+  const { isSignedIn } = useAuth();
+
+  if (isSignedIn) router.replace('/(app)/home');
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1 px-6">

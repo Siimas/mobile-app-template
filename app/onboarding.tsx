@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { STEPS } from '@/lib/onboarding/config';
+import { CURRENT_ONBOARDING_VERSION, STEPS } from '@/lib/onboarding/config';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import { useMutation, useQuery } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import { useAuth } from '@clerk/expo';
 
 type OnboardingAnswers = Record<string, string | null>;
 
@@ -11,20 +14,28 @@ function createInitialAnswers(): OnboardingAnswers {
 }
 
 export default function Onboarding() {
+  const { userId } = useAuth();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<OnboardingAnswers>(createInitialAnswers);
-  const totalSteps = STEPS.length;
-  const current = STEPS[step];
-  const selected = answers[current.id];
-  const isLastStep = step === totalSteps - 1;
 
-  function handleBack() {
-    if (step === 0) {
-      router.replace('/welcome');
-      return;
-    }
-    setStep((s) => s - 1);
-  }
+  const saveOnboardingAnswer = useMutation(api.onboardingResponses.saveAnswer);
+  const completeOnboarding = useMutation(api.onboardingResponses.completeOnboarding);
+
+  const self = useQuery(api.users.getSelf);
+
+  if (self === undefined)
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+
+  if (self && self.hasCompletedOnboarding) router.replace('/(app)/home');
+
+  const current = STEPS[step];
+  const totalSteps = STEPS.length;
+  const selected = answers[current.id];
+  const isLastStep = step === totalSteps - 1;  
 
   function handleSelect(value: string) {
     setAnswers((previous) => ({ ...previous, [current.id]: value }));
@@ -34,7 +45,15 @@ export default function Onboarding() {
     if (!selected) return;
 
     if (isLastStep) {
-      router.replace('/paywall');
+      const ownerKey = self ? self._id : userId; // TODO: need to get the customer id from revenuecat when he is not logged in but completes the onboarding
+
+      if (ownerKey) {
+        completeOnboarding({
+          onboardingVersion: CURRENT_ONBOARDING_VERSION,
+          ownerKey,
+        }).then(() => router.replace('/paywall'));
+      }
+
       return;
     }
 
@@ -57,14 +76,7 @@ export default function Onboarding() {
 
       <View className="flex-row items-center justify-center gap-4 px-6 pb-12">
         <TouchableOpacity
-          className="rounded-2xl border border-gray-300 px-10 py-4"
-          onPress={handleBack}>
-          <Text className="text-base font-semibold">
-            Back
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className={`rounded-2xl px-10 py-4 ${selected ? 'bg-black' : 'bg-gray-200'}`}
+          className={`rounded-2xl px-28 py-4 ${selected ? 'bg-black' : 'bg-gray-200'}`}
           disabled={!selected}
           onPress={handleNext}>
           <Text className={`text-base font-semibold ${selected ? 'text-white' : 'text-gray-400'}`}>

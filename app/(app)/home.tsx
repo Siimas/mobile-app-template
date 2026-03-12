@@ -3,17 +3,13 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { useAuth } from '@clerk/expo';
 
 export default function Home() {
-  const { userId } = useAuth();
-  const sendNotification = useMutation(api.pushNotifications.sendNotificationToUser);
+  const sendNotification = useMutation(api.pushNotifications.sendNotification);
 
   async function handleTestNotification() {
-    if (!userId) return;
     try {
       await sendNotification({
-        userId,
         title: 'Test Notification',
         body: 'Push notifications are working!',
       });
