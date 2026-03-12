@@ -19,7 +19,8 @@ export function useRevenueCat() {
 
 export function RevenueCatProvider({ children }: { children: React.ReactNode }) {
   const { userId } = useAuth();
-  const [isSynced, setIsSynced] = useState(!userId);
+  const [syncedUserId, setSyncedUserId] = useState<string | null>(null);
+  const isSynced = !userId || syncedUserId === userId;
   const [isActiveFromSDK, setIsActiveFromSDK] = useState(false);
   const linkAnonymousOnboarding = useMutation(api.onboardingResponses.linkAnonymousOnboarding);
 
@@ -32,12 +33,10 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (typeof userId !== 'string' || userId.length === 0) {
-      setIsSynced(true);
+      setSyncedUserId(null);
       setIsActiveFromSDK(false);
       return;
     }
-
-    setIsSynced(false);
     let isCancelled = false;
 
     async function syncIdentity() {
@@ -51,7 +50,7 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
         const active = Object.values(customerInfo.entitlements.active).length > 0;
         if (!isCancelled) {
           setIsActiveFromSDK(active);
-          setIsSynced(true);
+          setSyncedUserId(userId!);
         }
 
         if (!isCancelled && anonymousOwnerKey) {
@@ -59,9 +58,7 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
         }
       } catch (err) {
         console.error('[RevenueCat] identity sync failed:', err);
-        if (!isCancelled) {
-          setIsSynced(true);
-        }
+        // Do not mark as synced on failure — keep isSynced false.
       }
     }
 

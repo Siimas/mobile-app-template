@@ -1,12 +1,38 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
+import { useAuth } from '@clerk/expo';
 
 export default function Home() {
+  const { userId } = useAuth();
+  const sendNotification = useMutation(api.pushNotifications.sendNotificationToUser);
+
+  async function handleTestNotification() {
+    if (!userId) return;
+    try {
+      await sendNotification({
+        userId,
+        title: 'Test Notification',
+        body: 'Push notifications are working!',
+      });
+      Alert.alert('Sent!', 'You should receive a push notification shortly.');
+    } catch (e: any) {
+      Alert.alert('Error', e.message ?? 'Failed to send notification');
+    }
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-1 items-center justify-center">
+      <View className="flex-1 items-center justify-center gap-4">
         <Text className="text-6xl font-bold">Home</Text>
+        <TouchableOpacity
+          className="bg-black px-10 py-4 rounded-2xl"
+          onPress={handleTestNotification}
+        >
+          <Text className="text-white text-base font-semibold">Send Test Notification</Text>
+        </TouchableOpacity>
       </View>
       <View className="items-center pb-12">
         <TouchableOpacity

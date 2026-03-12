@@ -1,9 +1,7 @@
 TODO:
 
 - setup convex components
-  - functions
-  - rls
+  - rls + functions
   - rate limiter
-  - expo push notifications
 - readme setup guide
 - subscription proactive handling (notifying users, grace periods, etc.)

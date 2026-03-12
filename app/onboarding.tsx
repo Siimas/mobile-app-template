@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@clerk/expo';
 import { usePostHog } from 'posthog-react-native';
 import { useOnboarding } from '../hooks/use-onboarding';
@@ -11,26 +9,14 @@ import { CURRENT_ONBOARDING_VERSION, STEPS } from '@/onboarding/config';
 export default function Onboarding() {
   const { isSignedIn } = useAuth();
   const { isActive } = useSubscription();
-  const { saveStep, data } = useOnboarding();
+  const { saveStep } = useOnboarding();
   const posthog = usePostHog();
   const [step, setStep] = useState(0);
-  const [selected, setSelected] = useState('');
-
-  useEffect(() => {
-    if (!data?.answers) return;
-    const existingAnswer = data.answers.find((a) => a.question === STEPS[step].question);
-    if (existingAnswer) setSelected(existingAnswer.answer);
-  }, [step, data]);
+  const [completedAnswers, setCompletedAnswers] = useState<Record<string, string>>({});
 
   const current = STEPS[step];
 
-  function selectOption(value: string) {
-    setSelected(value);
-  }
-
-  async function handleNext() {
-    if (!selected) return;
-
+  async function handleComplete(answer: string) {
     const isLastQuestion = step === STEPS.length - 1;
 
     posthog.capture('onboarding_step_completed', {
@@ -38,17 +24,13 @@ export default function Onboarding() {
       total_steps: STEPS.length,
       onboarding_version: CURRENT_ONBOARDING_VERSION,
       question: current.question,
-      answer: selected,
+      answer,
     });
 
-    await saveStep({
-      question: current.question,
-      answer: selected,
-      isLastQuestion,
-    });
+    setCompletedAnswers((prev) => ({ ...prev, [current.id]: answer }));
+    await saveStep({ question: current.question, answer, isLastQuestion });
 
-    if (step < STEPS.length - 1) {
-      setSelected('');
+    if (!isLastQuestion) {
       setStep((s) => s + 1);
       return;
     }
@@ -73,53 +55,19 @@ export default function Onboarding() {
         router.replace('/welcome');
       }
     } else {
-      setSelected('');
       setStep((s) => s - 1);
     }
   }
 
-  const displayLabels = current.labels ?? current.options;
-
+  const StepComponent = current.component;
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="px-6 pt-4">
-        <Text className="text-sm font-medium text-gray-400">
-          Step {step + 1} of {STEPS.length}
-        </Text>
-      </View>
-
-      <View className="flex-1 px-6 pt-8">
-        <Text className="mb-8 text-2xl font-bold">{current.question}</Text>
-        <View className="gap-3">
-          {current.options.map((option, i) => (
-            <TouchableOpacity
-              key={option}
-              className={`rounded-2xl border px-5 py-4 ${selected === option ? 'border-black bg-black' : 'border-gray-300 bg-white'}`}
-              onPress={() => selectOption(option)}>
-              <Text
-                className={`text-base font-semibold ${selected === option ? 'text-white' : 'text-gray-800'}`}>
-                {displayLabels[i]}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <View className="flex-row items-center justify-center gap-4 px-6 pb-12">
-        <TouchableOpacity
-          className="rounded-2xl border border-gray-300 px-10 py-4"
-          onPress={handleBack}>
-          <Text className="text-base font-semibold">Back</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className={`rounded-2xl px-10 py-4 ${selected ? 'bg-black' : 'bg-gray-200'}`}
-          onPress={handleNext}
-          disabled={!selected}>
-          <Text className={`text-base font-semibold ${selected ? 'text-white' : 'text-gray-400'}`}>
-            {step < STEPS.length - 1 ? 'Next' : 'Continue'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+    <StepComponent
+      stepIndex={step}
+      totalSteps={STEPS.length}
+      isLastStep={step === STEPS.length - 1}
+      initialValue={completedAnswers[current.id]}
+      onComplete={handleComplete}
+      onBack={handleBack}
+    />
   );
 }

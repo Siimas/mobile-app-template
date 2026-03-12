@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { isClerkAPIResponseError, useAuth, useSSO, useUser } from '@clerk/expo';
@@ -7,33 +7,39 @@ import { useSignInWithApple } from '@clerk/expo/apple';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { usePostHog } from 'posthog-react-native';
-import { useOnboarding } from '../hooks/use-onboarding';
+import { Platform } from 'react-native';
+import { SignInButtons } from '../components/auth/SignInButtons';
 
 WebBrowser.maybeCompleteAuthSession();
+
+function getErrorInfo(err: unknown): { code: string; message: string } {
+  const code =
+    typeof err === 'object' && err !== null && 'code' in err
+      ? String((err as { code: unknown }).code)
+      : '';
+  const message =
+    typeof err === 'object' && err !== null && 'message' in err
+      ? String((err as { message: unknown }).message)
+      : String(err);
+  return { code, message };
+}
 
 export default function Login() {
   const { startSSOFlow } = useSSO();
   const { startAppleAuthenticationFlow } = useSignInWithApple();
   const { isLoaded, isSignedIn } = useAuth();
   const { user } = useUser();
-  const { isCompleted: isOnboardingCompleted, isLoading: isOnboardingLoading } = useOnboarding();
   const posthog = usePostHog();
 
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isAppleLoading, setIsAppleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isAnyLoading = isGoogleLoading || isAppleLoading;
-  const postLoginPath = isOnboardingCompleted ? '/(app)/home' : '/onboarding';
   const hasTrackedSignIn = useRef(false);
 
-  const redirectUrl = useMemo(
-    () => AuthSession.makeRedirectUri({ scheme: 'myapp', path: 'oauth-native-callback' }),
-    []
-  );
+  const redirectUrl = AuthSession.makeRedirectUri({ scheme: 'myapp', path: 'oauth-native-callback' });
 
   useEffect(() => {
-    if (isLoaded && isSignedIn && !isOnboardingLoading) {
-      // Identify and track sign-in once per login flow
+    if (isLoaded && isSignedIn) {
       if (!hasTrackedSignIn.current && user) {
         hasTrackedSignIn.current = true;
         posthog.identify(user.id, {
@@ -49,29 +55,12 @@ export default function Login() {
           provider: user.externalAccounts?.[0]?.provider ?? 'unknown',
         });
       }
-      router.replace(postLoginPath);
+      router.replace('/(app)/home');
     }
-  }, [isLoaded, isSignedIn, isOnboardingLoading, postLoginPath, user, posthog]);
-
-  async function activateSession(
-    createdSessionId: string | null,
-    setActive?: (params: { session: string }) => Promise<void>
-  ) {
-    if (!createdSessionId || !setActive) {
-      return;
-    }
-    await setActive({ session: createdSessionId });
-  }
+  }, [isLoaded, isSignedIn, user, posthog]);
 
   function isCancelError(err: unknown) {
-    const code =
-      typeof err === 'object' && err !== null && 'code' in err
-        ? String((err as { code: unknown }).code)
-        : '';
-    const message =
-      typeof err === 'object' && err !== null && 'message' in err
-        ? String((err as { message: unknown }).message)
-        : '';
+    const { code, message } = getErrorInfo(err);
     return (
       code === 'SIGN_IN_CANCELLED' ||
       code === '-5' ||
@@ -82,15 +71,8 @@ export default function Login() {
   }
 
   function logAuthError(context: string, err: unknown) {
-    const code =
-      typeof err === 'object' && err !== null && 'code' in err
-        ? String((err as { code: unknown }).code)
-        : 'unknown';
-    const message =
-      typeof err === 'object' && err !== null && 'message' in err
-        ? String((err as { message: unknown }).message)
-        : String(err);
-    console.error(`[auth] ${context} failed (code=${code}): ${message}`);
+    const { code, message } = getErrorInfo(err);
+    console.error(`[auth] ${context} failed (code=${code || 'unknown'}): ${message}`);
   }
 
   function isAlreadySignedInError(err: unknown) {
@@ -101,20 +83,23 @@ export default function Login() {
         return code === 'already_signed_in' || longMessage.includes('already signed in');
       });
     }
+    const { message } = getErrorInfo(err);
+    return message.toLowerCase().includes('already signed in');
+  }
 
-    const message =
-      typeof err === 'object' && err !== null && 'message' in err
-        ? String((err as { message: unknown }).message).toLowerCase()
-        : '';
-    return message.includes('already signed in');
+  async function activateSession(
+    createdSessionId: string | null,
+    setActive?: (params: { session: string }) => Promise<void>
+  ) {
+    if (!createdSessionId || !setActive) return;
+    await setActive({ session: createdSessionId });
   }
 
   async function handleGoogleSignIn() {
     if (isSignedIn) {
-      router.replace(postLoginPath);
+      router.replace('/(app)/home');
       return;
     }
-
     try {
       setError(null);
       setIsGoogleLoading(true);
@@ -126,7 +111,7 @@ export default function Login() {
     } catch (err) {
       if (isCancelError(err)) return;
       if (isAlreadySignedInError(err)) {
-        router.replace(postLoginPath);
+        router.replace('/(app)/home');
         return;
       }
       logAuthError('Google sign-in', err);
@@ -138,10 +123,9 @@ export default function Login() {
 
   async function handleAppleSignIn() {
     if (isSignedIn) {
-      router.replace(postLoginPath);
+      router.replace('/(app)/home');
       return;
     }
-
     try {
       setError(null);
       setIsAppleLoading(true);
@@ -173,7 +157,7 @@ export default function Login() {
     } catch (err) {
       if (isCancelError(err)) return;
       if (isAlreadySignedInError(err)) {
-        router.replace(postLoginPath);
+        router.replace('/(app)/home');
         return;
       }
       logAuthError('Apple sign-in', err);
@@ -191,39 +175,13 @@ export default function Login() {
           <Text className="mt-2 text-base text-gray-500">Warm up smarter. Train harder.</Text>
         </View>
 
-        <View className="mb-8">
-          {error && <Text className="mb-4 text-center text-sm text-red-500">{error}</Text>}
-
-          <TouchableOpacity
-            className={`w-full flex-row items-center justify-center rounded-2xl border border-gray-300 bg-white py-4 ${!isGoogleLoading && isAnyLoading ? 'opacity-50' : ''}`}
-            onPress={handleGoogleSignIn}
-            disabled={isAnyLoading}>
-            {isGoogleLoading ? (
-              <ActivityIndicator color="#4285F4" />
-            ) : (
-              <>
-                <Text className="mr-3 text-xl font-bold" style={{ color: '#4285F4' }}>
-                  G
-                </Text>
-                <Text className="text-base font-semibold text-gray-800">Continue with Google</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className={`mt-3 w-full flex-row items-center justify-center rounded-2xl bg-black py-4 ${!isAppleLoading && isAnyLoading ? 'opacity-50' : ''}`}
-            onPress={handleAppleSignIn}
-            disabled={isAnyLoading}>
-            {isAppleLoading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <>
-                <Text className="mr-3 text-xl font-bold text-white">{'\uF8FF'}</Text>
-                <Text className="text-base font-semibold text-white">Continue with Apple</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
+        <SignInButtons
+          onGooglePress={handleGoogleSignIn}
+          onApplePress={handleAppleSignIn}
+          isGoogleLoading={isGoogleLoading}
+          isAppleLoading={isAppleLoading}
+          error={error}
+        />
 
         <View className="items-center pb-4">
           <TouchableOpacity onPress={() => router.back()}>
