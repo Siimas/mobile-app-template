@@ -1,22 +1,6 @@
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 
-interface SignInButtonsProps {
-  onGooglePress: () => void;
-  onApplePress: () => void;
-  isGoogleLoading: boolean;
-  isAppleLoading: boolean;
-  error: string | null;
-}
-
-export function SignInButtons({
-  onGooglePress,
-  onApplePress,
-  isGoogleLoading,
-  isAppleLoading,
-  error,
-}: SignInButtonsProps) {
-  const isAnyLoading = isGoogleLoading || isAppleLoading;
-
+export function SignInButtons() {
   return (
     <View className="mb-8">
       {error && <Text className="mb-4 text-center text-sm text-red-500">{error}</Text>}

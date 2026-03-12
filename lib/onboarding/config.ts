@@ -1,10 +1,12 @@
 import React from 'react';
-import { OnboardingStepProps } from './types';
 import { UseCaseStep } from '../../components/onboarding/UseCaseStep';
 import { ExperienceLevelStep } from '../../components/onboarding/ExperienceLevelStep';
 import { MainGoalStep } from '../../components/onboarding/MainGoalStep';
 
-export type { OnboardingStepProps };
+export interface OnboardingStepProps {
+  selected: string | null;
+  onSelect: (value: string) => void;
+}
 
 export interface OnboardingStepConfig {
   id: string;

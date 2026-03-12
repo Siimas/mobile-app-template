@@ -31,9 +31,6 @@ export const posthog = new PostHog(apiKey || 'placeholder_key', {
   // Capture app lifecycle events
   captureAppLifecycleEvents: true,
 
-  // Enable debug mode in development
-  debug: __DEV__,
-
   // Batching settings
   flushAt: 20,
   flushInterval: 10000,

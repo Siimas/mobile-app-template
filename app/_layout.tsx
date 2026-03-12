@@ -8,9 +8,8 @@ import { tokenCache } from '@clerk/expo/token-cache';
 import { ConvexReactClient, ConvexProviderWithAuth } from 'convex/react';
 import { RevenueCatProvider } from '../components/RevenueCatProvider';
 import { PostHogProvider } from 'posthog-react-native';
-import { posthog } from '../src/config/posthog';
+import { posthog } from '../lib/config/posthog';
 import * as Sentry from '@sentry/react-native';
-import { usePushNotifications } from '../hooks/use-push-notifications';
 
 Sentry.init({
   dsn: 'https://18e4c6f8a05f6aea09bda442819626d8@o4508298540154880.ingest.de.sentry.io/4511027499040848',
@@ -48,19 +47,6 @@ function useAuthFromClerk() {
   };
 }
 
-// Separate component so usePushNotifications (which calls useMutation)
-// runs inside ConvexProviderWithAuth's subtree.
-function ConvexMountedApp() {
-  usePushNotifications();
-  return (
-    <RevenueCatProvider>
-      <SafeAreaProvider>
-        <Stack screenOptions={{ headerShown: false }} />
-      </SafeAreaProvider>
-    </RevenueCatProvider>
-  );
-}
-
 function RootLayoutInner() {
   const pathname = usePathname();
   const params = useGlobalSearchParams();
@@ -91,7 +77,11 @@ function RootLayoutInner() {
         publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
         tokenCache={tokenCache}>
         <ConvexProviderWithAuth client={convex} useAuth={useAuthFromClerk}>
-          <ConvexMountedApp />
+          <RevenueCatProvider>
+            <SafeAreaProvider>
+              <Stack screenOptions={{ headerShown: false }} />
+            </SafeAreaProvider>
+          </RevenueCatProvider>
         </ConvexProviderWithAuth>
       </ClerkProvider>
     </PostHogProvider>

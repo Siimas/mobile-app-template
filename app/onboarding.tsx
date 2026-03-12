@@ -1,73 +1,77 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { useAuth } from '@clerk/expo';
-import { usePostHog } from 'posthog-react-native';
-import { useOnboarding } from '../hooks/use-onboarding';
-import { useSubscription } from '../hooks/use-purchases';
-import { CURRENT_ONBOARDING_VERSION, STEPS } from '@/onboarding/config';
+import { STEPS } from '@/lib/onboarding/config';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Text, TouchableOpacity, View } from 'react-native';
+
+type OnboardingAnswers = Record<string, string | null>;
+
+function createInitialAnswers(): OnboardingAnswers {
+  return Object.fromEntries(STEPS.map((step) => [step.id, null]));
+}
 
 export default function Onboarding() {
-  const { isSignedIn } = useAuth();
-  const { isActive } = useSubscription();
-  const { saveStep } = useOnboarding();
-  const posthog = usePostHog();
   const [step, setStep] = useState(0);
-  const [completedAnswers, setCompletedAnswers] = useState<Record<string, string>>({});
-
+  const [answers, setAnswers] = useState<OnboardingAnswers>(createInitialAnswers);
+  const totalSteps = STEPS.length;
   const current = STEPS[step];
-
-  async function handleComplete(answer: string) {
-    const isLastQuestion = step === STEPS.length - 1;
-
-    posthog.capture('onboarding_step_completed', {
-      step_number: step + 1,
-      total_steps: STEPS.length,
-      onboarding_version: CURRENT_ONBOARDING_VERSION,
-      question: current.question,
-      answer,
-    });
-
-    setCompletedAnswers((prev) => ({ ...prev, [current.id]: answer }));
-    await saveStep({ question: current.question, answer, isLastQuestion });
-
-    if (!isLastQuestion) {
-      setStep((s) => s + 1);
-      return;
-    }
-
-    posthog.capture('onboarding_completed', {
-      total_steps: STEPS.length,
-      onboarding_version: CURRENT_ONBOARDING_VERSION,
-    });
-
-    if (isSignedIn && isActive) {
-      router.replace('/(app)/home');
-    } else {
-      router.replace('/paywall');
-    }
-  }
+  const selected = answers[current.id];
+  const isLastStep = step === totalSteps - 1;
 
   function handleBack() {
     if (step === 0) {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/welcome');
-      }
-    } else {
-      setStep((s) => s - 1);
+      router.replace('/welcome');
+      return;
     }
+    setStep((s) => s - 1);
+  }
+
+  function handleSelect(value: string) {
+    setAnswers((previous) => ({ ...previous, [current.id]: value }));
+  }
+
+  function handleNext() {
+    if (!selected) return;
+
+    if (isLastStep) {
+      router.replace('/paywall');
+      return;
+    }
+
+    setStep((previous) => Math.min(previous + 1, totalSteps - 1));
   }
 
   const StepComponent = current.component;
+
   return (
-    <StepComponent
-      stepIndex={step}
-      totalSteps={STEPS.length}
-      isLastStep={step === STEPS.length - 1}
-      initialValue={completedAnswers[current.id]}
-      onComplete={handleComplete}
-      onBack={handleBack}
-    />
+    <SafeAreaView className="flex-1 bg-white">
+      <View className="px-6 pt-4">
+        <Text className="text-sm font-medium text-gray-400">
+          Step {step + 1} of {totalSteps}
+        </Text>
+      </View>
+
+      <View className="flex-1 px-6 pt-8">
+        <StepComponent selected={selected} onSelect={handleSelect} />
+      </View>
+
+      <View className="flex-row items-center justify-center gap-4 px-6 pb-12">
+        <TouchableOpacity
+          className="rounded-2xl border border-gray-300 px-10 py-4"
+          onPress={handleBack}>
+          <Text className="text-base font-semibold">
+            Back
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className={`rounded-2xl px-10 py-4 ${selected ? 'bg-black' : 'bg-gray-200'}`}
+          disabled={!selected}
+          onPress={handleNext}>
+          <Text className={`text-base font-semibold ${selected ? 'text-white' : 'text-gray-400'}`}>
+            {isLastStep ? 'Continue' : 'Next'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
