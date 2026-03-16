@@ -14,7 +14,6 @@ import type * as clerk_http from "../clerk/http.js";
 import type * as clerk_types from "../clerk/types.js";
 import type * as http from "../http.js";
 import type * as onboardingResponses from "../onboardingResponses.js";
-import type * as onboardingResponses_lib from "../onboardingResponses/lib.js";
 import type * as onboardingResponses_mutations from "../onboardingResponses/mutations.js";
 import type * as onboardingResponses_queries from "../onboardingResponses/queries.js";
 import type * as onboardingResponses_types from "../onboardingResponses/types.js";
@@ -42,7 +41,6 @@ declare const fullApi: ApiFromModules<{
   "clerk/types": typeof clerk_types;
   http: typeof http;
   onboardingResponses: typeof onboardingResponses;
-  "onboardingResponses/lib": typeof onboardingResponses_lib;
   "onboardingResponses/mutations": typeof onboardingResponses_mutations;
   "onboardingResponses/queries": typeof onboardingResponses_queries;
   "onboardingResponses/types": typeof onboardingResponses_types;

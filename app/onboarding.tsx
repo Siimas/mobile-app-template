@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { CURRENT_ONBOARDING_VERSION, STEPS } from '@/lib/onboarding/config';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import { useAuth } from '@clerk/expo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { randomUUID } from 'expo-crypto';
+
+const ANON_KEY = '@onboarding_session_id';
 
 type OnboardingAnswers = Record<string, string | null>;
 
@@ -14,50 +17,72 @@ function createInitialAnswers(): OnboardingAnswers {
 }
 
 export default function Onboarding() {
-  const { userId } = useAuth();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<OnboardingAnswers>(createInitialAnswers);
+  const [anonymousId, setAnonymousId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const saveOnboardingAnswer = useMutation(api.onboardingResponses.saveAnswer);
+  const onboardingData = useQuery(
+    api.onboardingResponses.getMyOnboarding,
+    anonymousId ? { anonymousId } : 'skip'
+  );
+
+  const saveAnswer = useMutation(api.onboardingResponses.saveAnswer);
   const completeOnboarding = useMutation(api.onboardingResponses.completeOnboarding);
 
-  const self = useQuery(api.users.getSelf);
+  useEffect(() => {
+    AsyncStorage.getItem(ANON_KEY).then((stored) => {
+      if (stored) return setAnonymousId(stored);
+      const id = randomUUID();
+      AsyncStorage.setItem(ANON_KEY, id);
+      setAnonymousId(id);
+    });
+  }, []);
 
-  if (self === undefined)
+  if (!anonymousId || onboardingData === undefined) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator />
       </View>
     );
+  }
 
-  if (self && self.hasCompletedOnboarding) router.replace('/(app)/home');
+  if (onboardingData?.completedAt) {
+    router.replace('/(app)/home');
+    return null;
+  }
 
   const current = STEPS[step];
   const totalSteps = STEPS.length;
   const selected = answers[current.id];
-  const isLastStep = step === totalSteps - 1;  
+  const isLastStep = step === totalSteps - 1;
 
   function handleSelect(value: string) {
     setAnswers((previous) => ({ ...previous, [current.id]: value }));
   }
 
-  function handleNext() {
-    if (!selected) return;
+  async function handleNext() {
+    if (!selected || !anonymousId) return;
 
-    if (isLastStep) {
-      const ownerKey = self ? self._id : userId; // TODO: need to get the customer id from revenuecat when he is not logged in but completes the onboarding
+    setIsLoading(true);
+    try {
+      await saveAnswer({
+        anonymousId,
+        question: current.id,
+        answer: selected,
+        onboardingVersion: CURRENT_ONBOARDING_VERSION,
+      });
 
-      if (ownerKey) {
-        completeOnboarding({
-          onboardingVersion: CURRENT_ONBOARDING_VERSION,
-          ownerKey,
-        }).then(() => router.replace('/paywall'));
+      if (isLastStep) {
+        await completeOnboarding({ anonymousId });
+        router.replace('/paywall');
+        return;
       }
 
-      return;
+      setStep((prev) => Math.min(prev + 1, totalSteps - 1));
+    } finally {
+      setIsLoading(false);
     }
-
-    setStep((previous) => Math.min(previous + 1, totalSteps - 1));
   }
 
   const StepComponent = current.component;
@@ -76,12 +101,16 @@ export default function Onboarding() {
 
       <View className="flex-row items-center justify-center gap-4 px-6 pb-12">
         <TouchableOpacity
-          className={`rounded-2xl px-28 py-4 ${selected ? 'bg-black' : 'bg-gray-200'}`}
-          disabled={!selected}
+          className={`rounded-2xl px-28 py-4 ${selected && !isLoading ? 'bg-black' : 'bg-gray-200'}`}
+          disabled={!selected || isLoading}
           onPress={handleNext}>
-          <Text className={`text-base font-semibold ${selected ? 'text-white' : 'text-gray-400'}`}>
-            {isLastStep ? 'Continue' : 'Next'}
-          </Text>
+          {isLoading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text className={`text-base font-semibold ${selected ? 'text-white' : 'text-gray-400'}`}>
+              {isLastStep ? 'Continue' : 'Next'}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>

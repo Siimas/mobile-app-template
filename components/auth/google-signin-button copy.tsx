@@ -1,19 +1,49 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useSSO } from '@clerk/expo';
+import { useMutation } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const ANON_KEY = '@onboarding_session_id';
 
 export function GoogleSignInButton() {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { startSSOFlow } = useSSO();
+  const linkAnonymousOnboarding = useMutation(api.onboardingResponses.linkAnonymousOnboarding);
+
+  async function handleSignIn() {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { createdSessionId, setActive } = await startSSOFlow({ strategy: 'oauth_google' });
+      if (createdSessionId) await setActive?.({ session: createdSessionId });
+
+      const anonymousId = await AsyncStorage.getItem(ANON_KEY);
+      if (anonymousId) {
+        await linkAnonymousOnboarding({ anonymousId });
+        await AsyncStorage.removeItem(ANON_KEY);
+      }
+
+      router.replace('/(app)/home');
+    } catch {
+      setError('Sign in failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <TouchableOpacity
-      className={`w-full flex-row items-center justify-center rounded-2xl border border-gray-300 bg-white py-4 `}
-      onPress={() => router.push('/(app)/home')}>
+      className={`w-full flex-row items-center justify-center rounded-2xl border border-gray-300 bg-white py-4`}
+      disabled={isLoading}
+      onPress={handleSignIn}>
       {isLoading ? (
         <ActivityIndicator color="#4285F4" />
       ) : (
         <>
-          {/* Replace this with the google icon */}
           <Text className="mr-3 text-xl font-bold" style={{ color: '#4285F4' }}>
             G
           </Text>
