@@ -3,20 +3,32 @@ import { mutation } from '../_generated/server';
 
 export const saveAnswer = mutation({
   args: {
-    anonymousId: v.string(),
+    anonymousId: v.optional(v.string()),
     question: v.string(),
     answer: v.string(),
     onboardingVersion: v.number(),
   },
   handler: async (ctx, { anonymousId, question, answer, onboardingVersion }) => {
-    const existing = await ctx.db
-      .query('onboardingResponses')
-      .withIndex('by_anonymous_id', (q) => q.eq('anonymousId', anonymousId))
-      .unique();
+    const identity = await ctx.auth.getUserIdentity();
+
+    let existing;
+    if (identity) {
+      existing = await ctx.db
+        .query('onboardingResponses')
+        .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
+        .first();
+    } else if (anonymousId) {
+      existing = await ctx.db
+        .query('onboardingResponses')
+        .withIndex('by_anonymous_id', (q) => q.eq('anonymousId', anonymousId))
+        .unique();
+    } else {
+      throw new Error('Either authentication or anonymousId is required');
+    }
 
     if (!existing) {
       await ctx.db.insert('onboardingResponses', {
-        anonymousId,
+        ...(identity ? { clerkId: identity.subject } : { anonymousId }),
         onboardingVersion,
         answers: [{ question, answer, answeredAt: Date.now() }],
         updatedAt: Date.now(),
@@ -33,12 +45,24 @@ export const saveAnswer = mutation({
 });
 
 export const completeOnboarding = mutation({
-  args: { anonymousId: v.string() },
+  args: { anonymousId: v.optional(v.string()) },
   handler: async (ctx, { anonymousId }) => {
-    const existing = await ctx.db
-      .query('onboardingResponses')
-      .withIndex('by_anonymous_id', (q) => q.eq('anonymousId', anonymousId))
-      .unique();
+    const identity = await ctx.auth.getUserIdentity();
+
+    let existing;
+    if (identity) {
+      existing = await ctx.db
+        .query('onboardingResponses')
+        .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
+        .first();
+    } else if (anonymousId) {
+      existing = await ctx.db
+        .query('onboardingResponses')
+        .withIndex('by_anonymous_id', (q) => q.eq('anonymousId', anonymousId))
+        .unique();
+    } else {
+      throw new Error('Either authentication or anonymousId is required');
+    }
 
     if (existing) {
       await ctx.db.patch(existing._id, { completedAt: Date.now(), updatedAt: Date.now() });
@@ -46,7 +70,7 @@ export const completeOnboarding = mutation({
     }
 
     await ctx.db.insert('onboardingResponses', {
-      anonymousId,
+      ...(identity ? { clerkId: identity.subject } : { anonymousId }),
       onboardingVersion: 0,
       answers: [],
       completedAt: Date.now(),

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text } from 'react-native';
-import { GoogleSignInButton } from './google-signin-button copy';
+import { GoogleSignInButton } from './google-signin-button';
 import { AppleSignInButton } from './apple-signin-button';
 
 export function SignInButtons() {

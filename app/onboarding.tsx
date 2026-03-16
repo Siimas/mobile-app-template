@@ -7,6 +7,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { randomUUID } from 'expo-crypto';
+import { useAuth } from '@clerk/expo';
 
 const ANON_KEY = '@onboarding_session_id';
 
@@ -17,15 +18,21 @@ function createInitialAnswers(): OnboardingAnswers {
 }
 
 export default function Onboarding() {
+  const { isSignedIn } = useAuth();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<OnboardingAnswers>(createInitialAnswers);
   const [anonymousId, setAnonymousId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const onboardingData = useQuery(
-    api.onboardingResponses.getMyOnboarding,
-    anonymousId ? { anonymousId } : 'skip'
+  const onboardingByAuth = useQuery(
+    api.onboardingResponses.getMyOnboardingByAuth,
+    isSignedIn ? {} : 'skip'
   );
+  const onboardingByAnon = useQuery(
+    api.onboardingResponses.getMyOnboarding,
+    !isSignedIn && anonymousId ? { anonymousId } : 'skip'
+  );
+  const onboardingData = isSignedIn ? onboardingByAuth : onboardingByAnon;
 
   const saveAnswer = useMutation(api.onboardingResponses.saveAnswer);
   const completeOnboarding = useMutation(api.onboardingResponses.completeOnboarding);
@@ -39,7 +46,11 @@ export default function Onboarding() {
     });
   }, []);
 
-  if (!anonymousId || onboardingData === undefined) {
+  const isReady = isSignedIn
+    ? onboardingByAuth !== undefined
+    : anonymousId !== null && onboardingByAnon !== undefined;
+
+  if (!isReady) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator />
@@ -62,19 +73,21 @@ export default function Onboarding() {
   }
 
   async function handleNext() {
-    if (!selected || !anonymousId) return;
+    if (!selected) return;
 
     setIsLoading(true);
     try {
       await saveAnswer({
-        anonymousId,
+        anonymousId: isSignedIn ? undefined : (anonymousId ?? undefined),
         question: current.id,
         answer: selected,
         onboardingVersion: CURRENT_ONBOARDING_VERSION,
       });
 
       if (isLastStep) {
-        await completeOnboarding({ anonymousId });
+        await completeOnboarding({
+          anonymousId: isSignedIn ? undefined : (anonymousId ?? undefined),
+        });
         router.replace('/paywall');
         return;
       }

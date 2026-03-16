@@ -19,6 +19,6 @@ export const getMyOnboardingByAuth = query({
     return await ctx.db
       .query('onboardingResponses')
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
-      .unique();
+      .first();
   },
 });

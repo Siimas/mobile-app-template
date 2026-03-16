@@ -11,6 +11,7 @@ export default function AppLayout() {
     isSignedIn ? {} : 'skip'
   );
 
+  // Clerk still loading
   if (!isLoaded) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -19,8 +20,10 @@ export default function AppLayout() {
     );
   }
 
+  // Not signed in → login
   if (!isSignedIn) return <Redirect href="/login" />;
 
+  // Query in flight
   if (onboardingData === undefined) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -29,6 +32,7 @@ export default function AppLayout() {
     );
   }
 
+  // Onboarding not completed
   if (!onboardingData?.completedAt) return <Redirect href="/onboarding" />;
 
   return <Stack screenOptions={{ headerShown: false }} />;
