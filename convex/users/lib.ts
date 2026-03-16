@@ -36,17 +36,3 @@ export async function deleteUserByClerkId(db: DatabaseWriter, clerkId: string) {
     await db.delete(existing._id);
   }
 }
-
-export async function markUserOnboardingCompleteByClerkId(
-  db: DatabaseWriter,
-  clerkId: string | undefined
-) {
-  if (!clerkId) {
-    return;
-  }
-
-  const user = await getUserByClerkId(db, clerkId);
-  if (user && !user.hasCompletedOnboarding) {
-    await db.patch(user._id, { hasCompletedOnboarding: true });
-  }
-}

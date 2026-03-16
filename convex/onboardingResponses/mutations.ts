@@ -1,112 +1,73 @@
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { mutation } from '../_generated/server';
-import { markUserOnboardingCompleteByClerkId } from '../users/lib';
-import { mergeOnboardingAnswers, resolveOnboardingResponse } from './lib';
 
 export const saveAnswer = mutation({
   args: {
-    ownerKey: v.string(),
-    onboardingVersion: v.number(),
+    anonymousId: v.string(),
     question: v.string(),
     answer: v.string(),
+    onboardingVersion: v.number(),
   },
-  returns: v.id('onboardingResponses'),
-  handler: async (ctx, args) => {
-    const clerkId = (await ctx.auth.getUserIdentity())?.subject;
-    const existing = await resolveOnboardingResponse(
-      ctx.db,
-      args.ownerKey,
-      clerkId,
-      args.onboardingVersion
-    );
-    const now = Date.now();
-    const newAnswer = {
-      question: args.question,
-      answer: args.answer,
-      answeredAt: now,
-    };
+  handler: async (ctx, { anonymousId, question, answer, onboardingVersion }) => {
+    const existing = await ctx.db
+      .query('onboardingResponses')
+      .withIndex('by_anonymous_id', (q) => q.eq('anonymousId', anonymousId))
+      .unique();
 
     if (!existing) {
-      return await ctx.db.insert('onboardingResponses', {
-        ownerKey: args.ownerKey,
-        clerkId,
-        onboardingVersion: args.onboardingVersion,
-        answers: [newAnswer],
-        startedAt: now,
-        updatedAt: now,
+      await ctx.db.insert('onboardingResponses', {
+        anonymousId,
+        onboardingVersion,
+        answers: [{ question, answer, answeredAt: Date.now() }],
+        updatedAt: Date.now(),
       });
+      return;
     }
 
+    const filteredAnswers = existing.answers.filter((a) => a.question !== question);
     await ctx.db.patch(existing._id, {
-      answers: mergeOnboardingAnswers(existing.answers, newAnswer),
-      clerkId: clerkId ?? existing.clerkId,
-      updatedAt: now,
+      answers: [...filteredAnswers, { question, answer, answeredAt: Date.now() }],
+      updatedAt: Date.now(),
     });
-    return existing._id;
   },
 });
 
 export const completeOnboarding = mutation({
-  args: { ownerKey: v.string(), onboardingVersion: v.number() },
-  returns: v.union(v.id('onboardingResponses'), v.null()),
-  handler: async (ctx, args) => {
-    const clerkId = (await ctx.auth.getUserIdentity())?.subject;
-    const existing = await resolveOnboardingResponse(
-      ctx.db,
-      args.ownerKey,
-      clerkId,
-      args.onboardingVersion
-    );
-    if (!existing || existing.completedAt != null) {
-      return existing?._id ?? null;
+  args: { anonymousId: v.string() },
+  handler: async (ctx, { anonymousId }) => {
+    const existing = await ctx.db
+      .query('onboardingResponses')
+      .withIndex('by_anonymous_id', (q) => q.eq('anonymousId', anonymousId))
+      .unique();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { completedAt: Date.now(), updatedAt: Date.now() });
+      return;
     }
 
-    const now = Date.now();
-    await ctx.db.patch(existing._id, { completedAt: now, updatedAt: now });
-    await markUserOnboardingCompleteByClerkId(ctx.db, clerkId);
-    return existing._id;
+    await ctx.db.insert('onboardingResponses', {
+      anonymousId,
+      onboardingVersion: 0,
+      answers: [],
+      completedAt: Date.now(),
+      updatedAt: Date.now(),
+    });
   },
 });
 
 export const linkAnonymousOnboarding = mutation({
-  args: { anonymousOwnerKey: v.string() },
-  returns: v.null(),
-  handler: async (ctx, args) => {
+  args: { anonymousId: v.string() },
+  handler: async (ctx, { anonymousId }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError('Authentication required');
-    }
+    if (!identity) throw new Error('Unauthenticated');
 
-    const clerkId = identity.subject;
-    const anonRecords = await ctx.db
+    const doc = await ctx.db
       .query('onboardingResponses')
-      .withIndex('by_owner_key_version', (q) => q.eq('ownerKey', args.anonymousOwnerKey))
-      .collect();
+      .withIndex('by_anonymous_id', (q) => q.eq('anonymousId', anonymousId))
+      .unique();
 
-    for (const anon of anonRecords) {
-      const authed = await ctx.db
-        .query('onboardingResponses')
-        .withIndex('by_clerk_id_version', (q) =>
-          q.eq('clerkId', clerkId).eq('onboardingVersion', anon.onboardingVersion)
-        )
-        .unique();
+    if (!doc) return;
 
-      if (!authed) {
-        await ctx.db.patch(anon._id, { clerkId, updatedAt: Date.now() });
-      } else if (authed._id !== anon._id) {
-        await ctx.db.patch(authed._id, {
-          answers: anon.answers.reduce(mergeOnboardingAnswers, authed.answers),
-          completedAt: authed.completedAt ?? anon.completedAt,
-          updatedAt: Date.now(),
-        });
-        await ctx.db.delete(anon._id);
-      }
-    }
-
-    if (anonRecords.some((record) => record.completedAt != null)) {
-      await markUserOnboardingCompleteByClerkId(ctx.db, clerkId);
-    }
-
-    return null;
+    await ctx.db.patch(doc._id, { clerkId: identity.subject, updatedAt: Date.now() });
   },
 });
