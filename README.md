@@ -2,7 +2,7 @@ TODO:
 
 - setup convex components
   - rls + functions
-  - 
   - rate limiter
-- readme setup guide
+- add logging
 - subscription proactive handling (notifying users, grace periods, etc.)
+- readme setup guide

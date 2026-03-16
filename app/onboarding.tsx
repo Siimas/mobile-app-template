@@ -24,15 +24,10 @@ export default function Onboarding() {
   const [anonymousId, setAnonymousId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const onboardingByAuth = useQuery(
-    api.onboardingResponses.getMyOnboardingByAuth,
-    isSignedIn ? {} : 'skip'
-  );
-  const onboardingByAnon = useQuery(
+  const onboardingData = useQuery(
     api.onboardingResponses.getMyOnboarding,
-    !isSignedIn && anonymousId ? { anonymousId } : 'skip'
+    isSignedIn ? {} : anonymousId ? { anonymousId } : 'skip'
   );
-  const onboardingData = isSignedIn ? onboardingByAuth : onboardingByAnon;
 
   const saveAnswer = useMutation(api.onboardingResponses.saveAnswer);
   const completeOnboarding = useMutation(api.onboardingResponses.completeOnboarding);
@@ -47,8 +42,8 @@ export default function Onboarding() {
   }, []);
 
   const isReady = isSignedIn
-    ? onboardingByAuth !== undefined
-    : anonymousId !== null && onboardingByAnon !== undefined;
+    ? onboardingData !== undefined
+    : anonymousId !== null && onboardingData !== undefined;
 
   if (!isReady) {
     return (
