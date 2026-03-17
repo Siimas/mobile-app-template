@@ -5,8 +5,6 @@ export const getMyOnboarding = query({
   args: { anonymousId: v.optional(v.string()) },
   handler: async (ctx, { anonymousId }) => {
     const identity = await ctx.auth.getUserIdentity();
-    console.log(identity);
-    
     if (identity) {
       return ctx.db
         .query('onboardingResponses')
@@ -19,7 +17,6 @@ export const getMyOnboarding = query({
         .withIndex('by_anonymous_id', (q) => q.eq('anonymousId', anonymousId))
         .first();
     }
-    
     return null;
   },
 });

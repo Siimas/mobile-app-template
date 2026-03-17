@@ -6,7 +6,7 @@ export default function Paywall() {
     <RevenueCatUI.Paywall
       onPurchaseError={() => {}}
       onDismiss={() => router.replace('/welcome')}
-      onPurchaseCompleted={() => router.replace('/login')}
+      onPurchaseCompleted={() => router.replace('/(app)/home')}
     />
   );
 }

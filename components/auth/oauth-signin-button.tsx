@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useSSO } from '@clerk/clerk-expo';
 import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
@@ -8,17 +8,25 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ANON_KEY = '@onboarding_session_id';
 
-export function GoogleSignInButton() {
+type Strategy = 'oauth_google' | 'oauth_apple';
+
+interface Props {
+  strategy: Strategy;
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function OAuthSignInButton({ strategy, children, className }: Props) {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const { startSSOFlow } = useSSO();
   const linkAnonymousOnboarding = useMutation(api.onboardingResponses.linkAnonymousOnboarding);
 
+  const indicatorColor = strategy === 'oauth_google' ? '#4285F4' : 'white';
+
   async function handleSignIn() {
     setIsLoading(true);
-    setError(null);
     try {
-      const { createdSessionId, setActive } = await startSSOFlow({ strategy: 'oauth_google' });
+      const { createdSessionId, setActive } = await startSSOFlow({ strategy });
       if (createdSessionId) await setActive?.({ session: createdSessionId });
 
       const anonymousId = await AsyncStorage.getItem(ANON_KEY);
@@ -29,7 +37,7 @@ export function GoogleSignInButton() {
 
       router.replace('/(app)/home');
     } catch {
-      setError('Sign in failed. Please try again.');
+      // Sign in failed
     } finally {
       setIsLoading(false);
     }
@@ -37,19 +45,10 @@ export function GoogleSignInButton() {
 
   return (
     <TouchableOpacity
-      className={`w-full flex-row items-center justify-center rounded-2xl border border-gray-300 bg-white py-4`}
+      className={`w-full flex-row items-center justify-center rounded-2xl py-4 ${className ?? ''}`}
       disabled={isLoading}
       onPress={handleSignIn}>
-      {isLoading ? (
-        <ActivityIndicator color="#4285F4" />
-      ) : (
-        <>
-          <Text className="mr-3 text-xl font-bold" style={{ color: '#4285F4' }}>
-            G
-          </Text>
-          <Text className="text-base font-semibold text-gray-800">Continue with Google</Text>
-        </>
-      )}
+      {isLoading ? <ActivityIndicator color={indicatorColor} /> : children}
     </TouchableOpacity>
   );
 }
