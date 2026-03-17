@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useSSO } from '@clerk/expo';
+import { useSSO } from '@clerk/clerk-expo';
 import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';

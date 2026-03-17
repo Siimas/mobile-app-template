@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SignInButtons } from '../components/auth/SignInButtons';
-import { useAuth } from '@clerk/expo';
+import { useAuth } from '@clerk/clerk-expo';
 
 export default function Login() {
   const { isSignedIn } = useAuth();

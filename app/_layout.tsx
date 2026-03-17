@@ -3,13 +3,15 @@ import '../global.css';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack, usePathname, useGlobalSearchParams } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { ClerkProvider, useAuth } from '@clerk/expo';
-import { tokenCache } from '@clerk/expo/token-cache';
-import { ConvexReactClient, ConvexProviderWithAuth } from 'convex/react';
 import { RevenueCatProvider } from '../components/RevenueCatProvider';
 import { PostHogProvider } from 'posthog-react-native';
 import { posthog } from '../lib/config/posthog';
 import * as Sentry from '@sentry/react-native';
+
+import * as SecureStore from 'expo-secure-store';
+import { ClerkLoaded, ClerkProvider, useAuth } from '@clerk/clerk-expo';
+import { ConvexReactClient } from 'convex/react';
+import { ConvexProviderWithClerk } from 'convex/react-clerk';
 
 Sentry.init({
   dsn: 'https://18e4c6f8a05f6aea09bda442819626d8@o4508298540154880.ingest.de.sentry.io/4511027499040848',
@@ -30,22 +32,42 @@ Sentry.init({
   // spotlight: __DEV__,
 });
 
-const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
+// Create a Convex client
+const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!, {
+  unsavedChangesWarning: false,
+});
 
-function useAuthFromClerk() {
-  const { getToken, isLoaded, isSignedIn } = useAuth();
-  return {
-    isLoading: !isLoaded,
-    isAuthenticated: isSignedIn ?? false,
-    fetchAccessToken: async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
-      try {
-        return await getToken({ template: 'convex', skipCache: forceRefreshToken });
-      } catch {
-        return null;
-      }
-    },
-  };
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+if (!publishableKey) {
+  throw new Error(
+    'Missing Publishable Key. Please set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env'
+  );
 }
+
+const tokenCache = {
+  async getToken(key: string) {
+    try {
+      const item = await SecureStore.getItemAsync(key);
+      if (item) {
+        console.log(`${key} was used 🔐 \n`);
+      } else {
+        console.log('No values stored under key: ' + key);
+      }
+      return item;
+    } catch (error) {
+      console.error('SecureStore get item error: ', error);
+      await SecureStore.deleteItemAsync(key);
+      return null;
+    }
+  },
+  async saveToken(key: string, value: string) {
+    try {
+      return SecureStore.setItemAsync(key, value);
+    } catch (err) {
+      return;
+    }
+  },
+};
 
 function RootLayoutInner() {
   const pathname = usePathname();
@@ -73,16 +95,16 @@ function RootLayoutInner() {
         propsToCapture: ['testID'],
         maxElementsCaptured: 20,
       }}>
-      <ClerkProvider
-        publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
-        tokenCache={tokenCache}>
-        <ConvexProviderWithAuth client={convex} useAuth={useAuthFromClerk}>
-          <RevenueCatProvider>
-            <SafeAreaProvider>
-              <Stack screenOptions={{ headerShown: false }} />
-            </SafeAreaProvider>
-          </RevenueCatProvider>
-        </ConvexProviderWithAuth>
+      <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
+        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+          <ClerkLoaded>
+            <RevenueCatProvider>
+              <SafeAreaProvider>
+                <Stack screenOptions={{ headerShown: false }} />
+              </SafeAreaProvider>
+            </RevenueCatProvider>
+          </ClerkLoaded>
+        </ConvexProviderWithClerk>
       </ClerkProvider>
     </PostHogProvider>
   );

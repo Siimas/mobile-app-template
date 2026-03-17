@@ -15,7 +15,6 @@ export default {
       'expo-font',
       'expo-secure-store',
       'expo-apple-authentication',
-      '@clerk/expo',
       'expo-web-browser',
       'expo-localization',
       [

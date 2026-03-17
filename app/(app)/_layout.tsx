@@ -1,20 +1,15 @@
-import { useAuth } from '@clerk/expo';
-import { useConvexAuth, useQuery } from 'convex/react';
+import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Redirect, Stack } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
+import { useAuth } from '@clerk/clerk-expo';
 
 export default function AppLayout() {
   const { isLoaded, isSignedIn } = useAuth();
-  const { isAuthenticated: isConvexAuthenticated, isLoading: isConvexLoading } = useConvexAuth();
 
-  const onboardingData = useQuery(
-    api.onboardingResponses.getMyOnboarding,
-    isConvexAuthenticated ? {} : 'skip'
-  );
+  const onboardingData = useQuery(api.onboardingResponses.getMyOnboarding, {});
 
-  // Wait for Clerk, Convex auth loading, and Convex auth sync (when signed in)
-  if (!isLoaded || isConvexLoading || (isSignedIn && !isConvexAuthenticated)) {
+  if (!isLoaded) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator />
@@ -22,10 +17,8 @@ export default function AppLayout() {
     );
   }
 
-  // Not signed in → login
   if (!isSignedIn) return <Redirect href="/login" />;
 
-  // Query in flight
   if (onboardingData === undefined) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>

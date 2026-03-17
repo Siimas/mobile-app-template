@@ -7,7 +7,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { randomUUID } from 'expo-crypto';
-import { useAuth } from '@clerk/expo';
+import { useAuth } from '@clerk/clerk-expo';
 
 const ANON_KEY = '@onboarding_session_id';
 
