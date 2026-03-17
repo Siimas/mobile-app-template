@@ -43,7 +43,7 @@ export default function Onboarding() {
 
   const isReady = isSignedIn
     ? onboardingData !== undefined
-    : anonymousId !== null && onboardingData !== undefined;
+    : anonymousId !== null;
 
   if (!isReady) {
     return (

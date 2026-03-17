@@ -7,7 +7,7 @@ export function useCustomerInfo() {
   useEffect(() => {
     Purchases.getCustomerInfo().then(setCustomerInfo).catch(() => setCustomerInfo(null as any));
     const listener = Purchases.addCustomerInfoUpdateListener(setCustomerInfo);
-    return () => listener.remove();
+    return listener;
   }, []);
 
   return customerInfo;
