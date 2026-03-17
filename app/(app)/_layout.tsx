@@ -4,13 +4,14 @@ import { Redirect, Stack } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '@clerk/clerk-expo';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
+import { useCustomerInfo } from '@/hooks/use-customer-info';
 
 export default function AppLayout() {
   usePushNotifications();
   const { isLoaded, isSignedIn } = useAuth();
 
   const onboardingData = useQuery(api.onboardingResponses.getMyOnboarding, {});
-  const activeEntitlements = useQuery(api.revenuecat.getMyActiveEntitlements, {});
+  const customerInfo = useCustomerInfo();
 
   if (!isLoaded) {
     return (
@@ -33,7 +34,7 @@ export default function AppLayout() {
   // Onboarding not completed
   if (!onboardingData?.completedAt) return <Redirect href="/onboarding" />;
 
-  if (activeEntitlements === undefined) {
+  if (customerInfo === undefined) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator />
@@ -41,7 +42,8 @@ export default function AppLayout() {
     );
   }
 
-  if (activeEntitlements.length === 0) return <Redirect href="/paywall" />;
+  const hasEntitlement = Object.keys(customerInfo?.entitlements?.active ?? {}).length > 0;
+  if (!hasEntitlement) return <Redirect href="/paywall" />;
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }
