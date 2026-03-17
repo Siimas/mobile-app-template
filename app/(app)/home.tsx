@@ -13,7 +13,6 @@ export default function Home() {
         title: 'Test Notification',
         body: 'Push notifications are working!',
       });
-      Alert.alert('Sent!', 'You should receive a push notification shortly.');
     } catch (e: any) {
       Alert.alert('Error', e.message ?? 'Failed to send notification');
     }

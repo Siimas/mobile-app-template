@@ -18,9 +18,13 @@ export function usePushNotifications() {
   const registerToken = useMutation(api.pushNotifications.registerPushToken);
 
   useEffect(() => {
-    registerForPushNotifications().then((token) => {
-      if (token) registerToken({ token });
-    });
+    registerForPushNotifications()
+      .then((token) => {
+        if (token) registerToken({ token });
+      })
+      .catch((err) => {
+        console.error("[PushNotifications] Failed to register:", err);
+      });
   }, [registerToken]);
 }
 
@@ -53,8 +57,16 @@ async function registerForPushNotifications(): Promise<string | null> {
   }
 
   const projectId = process.env.EXPO_PUBLIC_PROJECT_ID;
-  const tokenData = await Notifications.getExpoPushTokenAsync(
-    projectId ? { projectId } : undefined
-  );
+  if (!projectId) {
+    console.error("[PushNotifications] EXPO_PUBLIC_PROJECT_ID is not set. Cannot get push token.");
+    return null;
+  }
+  let tokenData;
+  try {
+    tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+  } catch (err) {
+    console.error("[PushNotifications] getExpoPushTokenAsync failed:", err);
+    return null;
+  }
   return tokenData.data;
 }
