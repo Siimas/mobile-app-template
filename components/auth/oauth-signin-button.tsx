@@ -4,7 +4,7 @@ import { TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useSSO } from '@clerk/clerk-expo';
 import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storage } from '@/lib/storage';
 
 const ANON_KEY = '@onboarding_session_id';
 
@@ -29,10 +29,10 @@ export function OAuthSignInButton({ strategy, children, className }: Props) {
       const { createdSessionId, setActive } = await startSSOFlow({ strategy });
       if (createdSessionId) await setActive?.({ session: createdSessionId });
 
-      const anonymousId = await AsyncStorage.getItem(ANON_KEY);
+      const anonymousId = storage.getString(ANON_KEY);
       if (anonymousId) {
         await linkAnonymousOnboarding({ anonymousId });
-        await AsyncStorage.removeItem(ANON_KEY);
+        storage.delete(ANON_KEY);
       }
 
       router.replace('/(app)/home');

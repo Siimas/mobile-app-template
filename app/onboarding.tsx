@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { router } from 'expo-router';
 import { CURRENT_ONBOARDING_VERSION, STEPS } from '@/lib/onboarding/config';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storage } from '@/lib/storage';
 import { randomUUID } from 'expo-crypto';
 import { useAuth } from '@clerk/clerk-expo';
 
@@ -21,29 +21,24 @@ export default function Onboarding() {
   const { isSignedIn } = useAuth();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<OnboardingAnswers>(createInitialAnswers);
-  const [anonymousId, setAnonymousId] = useState<string | null>(null);
+  const [anonymousId] = useState<string>(() => {
+    const stored = storage.getString(ANON_KEY);
+    if (stored) return stored;
+    const id = randomUUID();
+    storage.set(ANON_KEY, id);
+    return id;
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   const onboardingData = useQuery(
     api.onboardingResponses.getMyOnboarding,
-    isSignedIn ? {} : anonymousId ? { anonymousId } : 'skip'
+    isSignedIn ? {} : { anonymousId }
   );
 
   const saveAnswer = useMutation(api.onboardingResponses.saveAnswer);
   const completeOnboarding = useMutation(api.onboardingResponses.completeOnboarding);
 
-  useEffect(() => {
-    AsyncStorage.getItem(ANON_KEY).then((stored) => {
-      if (stored) return setAnonymousId(stored);
-      const id = randomUUID();
-      AsyncStorage.setItem(ANON_KEY, id);
-      setAnonymousId(id);
-    });
-  }, []);
-
-  const isReady = isSignedIn
-    ? onboardingData !== undefined
-    : anonymousId !== null;
+  const isReady = isSignedIn ? onboardingData !== undefined : true;
 
   if (!isReady) {
     return (
