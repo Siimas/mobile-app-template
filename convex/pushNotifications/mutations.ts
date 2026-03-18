@@ -1,7 +1,7 @@
 import { PushNotifications } from '@convex-dev/expo-push-notifications';
 import { ConvexError, v } from 'convex/values';
 import { components } from '../_generated/api';
-import { mutation } from '../_generated/server';
+import { internalMutation, mutation } from '../_generated/server';
 import { rateLimiter } from '../rateLimiter';
 
 const notifications = new PushNotifications<string>(components.pushNotifications);
@@ -32,6 +32,17 @@ export const removePushToken = mutation({
     }
 
     await notifications.removeToken(ctx, { userId: identity.subject });
+  },
+});
+
+export const sendNotificationToUserInternal = internalMutation({
+  args: { userId: v.string(), title: v.string(), body: v.string() },
+  handler: async (ctx, { userId, title, body }) => {
+    await notifications.sendPushNotification(ctx, {
+      userId,
+      notification: { title, body },
+      allowUnregisteredTokens: true,
+    });
   },
 });
 

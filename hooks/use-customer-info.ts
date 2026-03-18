@@ -10,5 +10,8 @@ export function useCustomerInfo() {
     return listener;
   }, []);
 
-  return customerInfo;
+  const hasBillingIssue = Object.values(customerInfo?.entitlements?.active ?? {})
+    .some((e) => e.billingIssueDetectedAt != null);
+
+  return { customerInfo, hasBillingIssue };
 }

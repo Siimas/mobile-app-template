@@ -5,13 +5,14 @@ import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '@clerk/clerk-expo';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
 import { useCustomerInfo } from '@/hooks/use-customer-info';
+import { BillingIssueBanner } from '@/components/BillingIssueBanner';
 
 export default function AppLayout() {
   usePushNotifications();
   const { isLoaded, isSignedIn } = useAuth();
 
   const onboardingData = useQuery(api.onboardingResponses.getMyOnboarding, {});
-  const customerInfo = useCustomerInfo();
+  const { customerInfo, hasBillingIssue } = useCustomerInfo();
 
   if (!isLoaded) {
     return (
@@ -45,5 +46,10 @@ export default function AppLayout() {
   const hasEntitlement = Object.keys(customerInfo?.entitlements?.active ?? {}).length > 0;
   if (!hasEntitlement) return <Redirect href="/paywall" />;
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <View style={{ flex: 1 }}>
+      {hasBillingIssue && <BillingIssueBanner />}
+      <Stack screenOptions={{ headerShown: false }} />
+    </View>
+  );
 }
