@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { mutation } from '../_generated/server';
+import { rateLimiter } from '../rateLimiter';
 
 export const saveAnswer = mutation({
   args: {
@@ -10,6 +11,10 @@ export const saveAnswer = mutation({
   },
   handler: async (ctx, { anonymousId, question, answer, onboardingVersion }) => {
     const identity = await ctx.auth.getUserIdentity();
+    const key = identity?.subject ?? anonymousId;
+    if (!key) throw new Error('Either authentication or anonymousId is required');
+
+    await rateLimiter.limit(ctx, 'saveOnboardingAnswer', { key, throws: true });
 
     let existing;
     if (identity) {
@@ -22,8 +27,6 @@ export const saveAnswer = mutation({
         .query('onboardingResponses')
         .withIndex('by_anonymous_id', (q) => q.eq('anonymousId', anonymousId))
         .unique();
-    } else {
-      throw new Error('Either authentication or anonymousId is required');
     }
 
     if (!existing) {
@@ -48,6 +51,10 @@ export const completeOnboarding = mutation({
   args: { anonymousId: v.optional(v.string()) },
   handler: async (ctx, { anonymousId }) => {
     const identity = await ctx.auth.getUserIdentity();
+    const key = identity?.subject ?? anonymousId;
+    if (!key) throw new Error('Either authentication or anonymousId is required');
+
+    await rateLimiter.limit(ctx, 'completeOnboarding', { key, throws: true });
 
     let existing;
     if (identity) {
@@ -60,8 +67,6 @@ export const completeOnboarding = mutation({
         .query('onboardingResponses')
         .withIndex('by_anonymous_id', (q) => q.eq('anonymousId', anonymousId))
         .unique();
-    } else {
-      throw new Error('Either authentication or anonymousId is required');
     }
 
     if (existing) {
@@ -84,6 +89,8 @@ export const linkAnonymousOnboarding = mutation({
   handler: async (ctx, { anonymousId }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error('Unauthenticated');
+
+    await rateLimiter.limit(ctx, 'linkAnonymousOnboarding', { key: identity.subject, throws: true });
 
     const doc = await ctx.db
       .query('onboardingResponses')
