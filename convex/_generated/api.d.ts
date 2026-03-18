@@ -12,6 +12,7 @@ import type * as clerk from "../clerk.js";
 import type * as clerk_actions from "../clerk/actions.js";
 import type * as clerk_http from "../clerk/http.js";
 import type * as clerk_types from "../clerk/types.js";
+import type * as functions from "../functions.js";
 import type * as http from "../http.js";
 import type * as onboardingResponses from "../onboardingResponses.js";
 import type * as onboardingResponses_mutations from "../onboardingResponses/mutations.js";
@@ -22,6 +23,7 @@ import type * as pushNotifications_mutations from "../pushNotifications/mutation
 import type * as revenuecat from "../revenuecat.js";
 import type * as revenuecat_http from "../revenuecat/http.js";
 import type * as revenuecat_queries from "../revenuecat/queries.js";
+import type * as rls from "../rls.js";
 import type * as users from "../users.js";
 import type * as users_lib from "../users/lib.js";
 import type * as users_mutations from "../users/mutations.js";
@@ -39,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   "clerk/actions": typeof clerk_actions;
   "clerk/http": typeof clerk_http;
   "clerk/types": typeof clerk_types;
+  functions: typeof functions;
   http: typeof http;
   onboardingResponses: typeof onboardingResponses;
   "onboardingResponses/mutations": typeof onboardingResponses_mutations;
@@ -49,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   revenuecat: typeof revenuecat;
   "revenuecat/http": typeof revenuecat_http;
   "revenuecat/queries": typeof revenuecat_queries;
+  rls: typeof rls;
   users: typeof users;
   "users/lib": typeof users_lib;
   "users/mutations": typeof users_mutations;

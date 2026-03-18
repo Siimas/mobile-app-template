@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { mutation } from '../_generated/server';
+import { mutation } from '../functions';
 import { rateLimiter } from '../rateLimiter';
 
 export const saveAnswer = mutation({

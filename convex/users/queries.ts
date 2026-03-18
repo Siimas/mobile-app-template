@@ -1,4 +1,4 @@
-import { query } from '../_generated/server';
+import { query } from '../functions';
 import { getUserByClerkId } from './lib';
 
 export const getSelf = query({
