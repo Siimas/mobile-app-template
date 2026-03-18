@@ -2,6 +2,7 @@ import { PushNotifications } from '@convex-dev/expo-push-notifications';
 import { ConvexError, v } from 'convex/values';
 import { components } from '../_generated/api';
 import { mutation } from '../_generated/server';
+import { rateLimiter } from '../rateLimiter';
 
 const notifications = new PushNotifications<string>(components.pushNotifications);
 
@@ -12,6 +13,8 @@ export const registerPushToken = mutation({
     if (!identity) {
       throw new Error('Not authenticated');
     }
+
+    await rateLimiter.limit(ctx, 'registerPushToken', { key: identity.subject, throws: true });
 
     await notifications.recordToken(ctx, {
       userId: identity.subject,
@@ -43,6 +46,8 @@ export const sendNotification = mutation({
     if (!identity) {
       throw new ConvexError('Not authenticated');
     }
+
+    await rateLimiter.limit(ctx, 'sendNotification', { key: identity.subject, throws: true });
 
     await notifications.sendPushNotification(ctx, {
       userId: identity.subject,
