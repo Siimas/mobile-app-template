@@ -1,0 +1,23 @@
+{
+  "skill_name": "use-reanimated",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Add a press animation to this button component — it should scale down slightly when pressed and spring back when released:\n\n```tsx\nexport function PrimaryButton({ label, onPress }: { label: string; onPress: () => void }) {\n  return (\n    <Pressable onPress={onPress} className=\"bg-black rounded-2xl py-4 items-center w-full\">\n      <Text className=\"text-white font-semibold text-base\">{label}</Text>\n    </Pressable>\n  );\n}\n```",
+      "expected_output": "Component using useSharedValue, useAnimatedStyle, withSpring from react-native-reanimated. Pressable wrapped in Animated.View or using createAnimatedComponent. No import from react-native's Animated.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "I have this notification banner component that uses React Native's Animated API. Convert it to use a better animation approach — it should slide in from the top and fade in when shown:\n\n```tsx\nimport React, { useEffect, useRef } from 'react';\nimport { Animated, View, Text } from 'react-native';\n\nexport function NotificationBanner({ message, visible }: { message: string; visible: boolean }) {\n  const slideAnim = useRef(new Animated.Value(-60)).current;\n  const opacityAnim = useRef(new Animated.Value(0)).current;\n\n  useEffect(() => {\n    if (visible) {\n      Animated.parallel([\n        Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true }),\n        Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),\n      ]).start();\n    } else {\n      Animated.parallel([\n        Animated.timing(slideAnim, { toValue: -60, duration: 200, useNativeDriver: true }),\n        Animated.timing(opacityAnim, { toValue: 0, duration: 200, useNativeDriver: true }),\n      ]).start();\n    }\n  }, [visible]);\n\n  return (\n    <Animated.View style={{ transform: [{ translateY: slideAnim }], opacity: opacityAnim }}>\n      <View className=\"bg-black px-4 py-3 rounded-xl\">\n        <Text className=\"text-white text-sm\">{message}</Text>\n      </View>\n    </Animated.View>\n  );\n}\n```",
+      "expected_output": "Component converted to react-native-reanimated with useSharedValue, useAnimatedStyle, withTiming or withSpring. No Animated import from react-native. No useNativeDriver. No useRef(new Animated.Value). Ideally uses layout animation entering/exiting or conditional rendering with Reanimated.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Build a staggered list component that renders a list of items where each item fades in from below with a slight delay between them. The items are strings passed as a prop.\n\nThis is for the onboarding screen in our React Native/Expo app.",
+      "expected_output": "Component using Animated.View with `entering` prop from react-native-reanimated (e.g. FadeInDown.delay()). No React Native Animated API. Clean stagger effect using delay calculated from index.",
+      "files": []
+    }
+  ]
+}
